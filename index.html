@@ -217,12 +217,13 @@ const PERK_HINT = {
 };
 const SIT_HINT = { entrepreneur:"Complete any full 24-month run", retiree:"Finish a run with grade A or higher" };
 
-// assets: return = news.stock*mult + base + noise
+// assets: return = news.stock*mult + base + noise. Tuned (see sim) so investing
+// is modest and genuinely risky — blue-chip loses money ~42% of runs, crypto ~55%.
 const ASSETS = [
-  { id:"bonds",      n:"🛡️ Bonds",       note:"Safe · steady ~0.4%/mo",     mult:0.12, base:0.004, noise:0.003 },
-  { id:"bluechip",   n:"🐢 Blue-Chip",    note:"Moderate · tracks the market", mult:0.85, base:0.002, noise:0.022 },
-  { id:"crypto",     n:"🎢 Crypto",       note:"Wild · massive swings",        mult:1.9,  base:0.004, noise:0.085 },
-  { id:"realestate", n:"🏠 Real Estate",  note:"Slow & steady · low swings",   mult:0.30, base:0.005, noise:0.006 },
+  { id:"bonds",      n:"🛡️ Bonds",       note:"Safe · reliable ~0.35%/mo, never crashes", mult:0.05, base:0.0035, noise:0.0025 },
+  { id:"bluechip",   n:"🐢 Blue-Chip",    note:"Moderate · tracks the market, can dip",     mult:0.90, base:0.0035, noise:0.025 },
+  { id:"crypto",     n:"🎢 Crypto",       note:"Wild · huge swings, often loses",           mult:1.80, base:0.005,  noise:0.090 },
+  { id:"realestate", n:"🏠 Real Estate",  note:"Slow & steady · low swings",                mult:0.30, base:0.004,  noise:0.007 },
 ];
 
 const EVENTS = [
@@ -291,17 +292,18 @@ const TEMPTATIONS = [
 ];
 
 const NEWS = [
-  { t:"📈 Tech earnings crush expectations — markets rally.", stock:0.075, bond:0.004 },
-  { t:"🟢 Inflation cools faster than feared.", stock:0.045, bond:0.006 },
-  { t:"🏦 The Fed cuts interest rates.", stock:0.035, bond:0.008 },
-  { t:"💪 Strong jobs report lifts confidence.", stock:0.03, bond:0.003 },
-  { t:"🚀 Crypto and growth stocks surge.", stock:0.10, bond:0.002 },
+  { t:"📈 Tech earnings crush expectations — markets rally.", stock:0.06, bond:0.004 },
+  { t:"🟢 Inflation cools faster than feared.", stock:0.035, bond:0.006 },
+  { t:"🏦 The Fed cuts interest rates.", stock:0.025, bond:0.008 },
+  { t:"💪 Strong jobs report lifts confidence.", stock:0.018, bond:0.003 },
+  { t:"🚀 Crypto and growth stocks surge.", stock:0.055, bond:0.002 },
   { t:"😐 Mixed signals — markets drift sideways.", stock:0.004, bond:0.003 },
-  { t:"🌧️ Recession fears creep in.", stock:-0.05, bond:0.005 },
-  { t:"📉 A sharp market correction hits stocks.", stock:-0.085, bond:0.004, crash:true },
-  { t:"🌍 Geopolitical tensions rattle investors.", stock:-0.04, bond:0.006 },
-  { t:"💥 A speculative bubble bursts!", stock:-0.11, bond:0.003, crash:true },
   { t:"🟡 Earnings season is a mixed bag.", stock:-0.012, bond:0.004 },
+  { t:"💸 Investors take profits — markets pull back.", stock:-0.025, bond:0.004 },
+  { t:"🌧️ Recession fears creep in.", stock:-0.03, bond:0.005 },
+  { t:"🌍 Geopolitical tensions rattle investors.", stock:-0.035, bond:0.006 },
+  { t:"📉 A sharp market correction hits stocks.", stock:-0.05, bond:0.004, crash:true },
+  { t:"💥 A speculative bubble bursts!", stock:-0.06, bond:0.003, crash:true },
 ];
 
 const GOAL_POOL = [
@@ -504,7 +506,7 @@ function startMonth(){
     else if(r<0.18 && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
     else S.thisEvent={...rand(EVENTS)};
   }
-  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate"]) : null;
+  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
   renderBudget();
 }
 
@@ -530,7 +532,7 @@ function chooseDilemma(i){
   markDebt();
   sfx(res.happy>0?"coin":"click");
   // proceed to a normal opportunity roll then budget
-  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate"]) : null;
+  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
   screen().innerHTML=`<div class="card"><h2>${res.happy>=0?"✅":"😬"} Outcome</h2>
     <div class="event ${res.happy>=0?'good':'bad'}">${res.msg}${res.happy?` <span class="amt ${res.happy>0?'pos':'neg'}">${res.happy>0?'+':''}${res.happy} happiness</span>`:""}</div>
     <button class="primary" onclick="renderBudget()">Continue to budget →</button></div>`;
@@ -566,10 +568,12 @@ function renderBudget(){
 
   let oppHtml="";
   if(S.opp){
-    const m={ hustle:["🎯","Side hustle available!","Play a quick game to earn cash.","openHustle"],
+    const m={ hustle:["🎯","Side hustle available!","Tap fast, dodge the bombs, earn cash.","openHustle"],
               trade:["🎲","Hot stock tip!","Risk some cash on a day trade?","openTrade"],
-              coupon:["🏷️","Coupon drop!","Grab discounts to cut this month's bills.","openCoupon"],
-              negotiate:["🤝","Raise opportunity!","Nail the timing to boost your income.","openNegotiate"] }[S.opp];
+              coupon:["🏷️","Coupon drop!","Grab discounts, avoid the scams.","openCoupon"],
+              negotiate:["🤝","Raise opportunity!","3 rounds of timing for a bigger raise.","openNegotiate"],
+              memory:["🧠","Brain teaser!","Repeat the market pattern for cash.","openMemory"],
+              blitz:["🧮","Budget Blitz!","Answer fast finance questions for cash.","openBlitz"] }[S.opp];
     oppHtml=`<div class="opp"><span class="txt">${m[0]} <b>${m[1]}</b> ${m[2]}</span><button class="gold" onclick="${m[3]}()">Go</button></div>`;
   }
 
@@ -748,42 +752,56 @@ function mgMult(){ return S.hustleEdge?1.5:1; }
 function openOverlay(inner){ const ov=document.createElement("div"); ov.className="overlay"; ov.id="ov"; ov.innerHTML=`<div class="modal">${inner}</div>`; document.body.appendChild(ov); }
 function closeOv(){ const o=$("ov"); if(o) o.remove(); renderBudget(); }
 
-// Side Hustle — tap cash
+// Side Hustle — tap cash, dodge bombs (fast & punishing)
 function openHustle(){
-  S.opp=null; sfx("click"); let earned=0,time=9;
-  openOverlay(`<h3>🎯 Side Hustle</h3><div class="sub">Tap the cash before it vanishes — you keep it all!</div>
-    <div class="mg-hud"><span>⏱️ <span id="mg-time">9</span>s</span><span>💰 <span id="mg-earn">$0</span></span></div>
+  S.opp=null; sfx("click"); let earned=0,time=7;
+  openOverlay(`<h3>🎯 Side Hustle</h3><div class="sub">Tap 💵 fast — they vanish quickly! Avoid 💣 bombs (they cost you $90).</div>
+    <div class="mg-hud"><span>⏱️ <span id="mg-time">7</span>s</span><span>💰 <span id="mg-earn">$0</span></span></div>
     <div id="playfield"></div>`);
   const field=$("playfield");
   const timer=setInterval(()=>{ time--; $("mg-time").textContent=time; if(time<=0) end(); },1000);
-  const spawner=setInterval(spawn,560);
-  function spawn(){ const coin=document.createElement("div"); coin.className="coin";
-    const val=Math.round((40+Math.floor(Math.random()*5)*15)*mgMult()); coin.textContent=val>=120?"💎":"💵";
-    coin.style.left=(8+Math.random()*78)+"%"; coin.style.top=(8+Math.random()*72)+"%";
-    coin.onclick=()=>{ earned+=val; $("mg-earn").textContent=money(earned); sfx("coin"); coin.textContent="✨"; coin.style.pointerEvents="none"; setTimeout(()=>coin.remove(),120); };
-    field.appendChild(coin); setTimeout(()=>coin.remove(),1150);
+  const spawner=setInterval(spawn,470);
+  function spawn(){
+    const bomb=Math.random()<0.28;
+    const el=document.createElement("div"); el.className="coin"; el.style.fontSize="30px";
+    const val=Math.round((25+Math.floor(Math.random()*4)*12)*mgMult());
+    el.textContent = bomb?"💣":(val>=70?"💎":"💵");
+    el.style.left=(6+Math.random()*82)+"%"; el.style.top=(6+Math.random()*76)+"%";
+    el.onclick=()=>{
+      if(bomb){ earned=Math.max(0,earned-90); sfx("bad"); el.textContent="💥"; field.classList.add("shake"); setTimeout(()=>field.classList.remove("shake"),300); }
+      else { earned+=val; sfx("coin"); el.textContent="✨"; }
+      $("mg-earn").textContent=money(earned); el.style.pointerEvents="none"; setTimeout(()=>el.remove(),120);
+    };
+    field.appendChild(el); setTimeout(()=>el.remove(),780);
   }
   function end(){ clearInterval(timer); clearInterval(spawner); S.cash+=earned; S.hustleEarned+=earned; if(earned>0){ unlock("hustler","Side Hustler"); sfx("win"); }
-    $("playfield").parentElement.innerHTML=`<h3>Nice grind! 💪</h3><div class="sub">You earned</div><div class="big-num" style="color:var(--green)">${money(earned)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+    $("playfield").parentElement.innerHTML=`<h3>Time! 💪</h3><div class="sub">You earned</div><div class="big-num" style="color:var(--green)">${money(earned)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
   }
 }
-// Coupon Dash — tap coupons to cut this month's needs
+// Coupon Dash — grab coupons, dodge scams
 function openCoupon(){
-  S.opp=null; sfx("click"); let saved=0,time=8; const cap=Math.round(450*mgMult());
-  openOverlay(`<h3>🏷️ Coupon Dash</h3><div class="sub">Tap coupons to slash THIS month's bills (up to ${money(cap)}).</div>
-    <div class="mg-hud"><span>⏱️ <span id="mg-time">8</span>s</span><span>✂️ <span id="mg-save">$0</span> off</span></div>
+  S.opp=null; sfx("click"); let saved=0,time=7; const cap=Math.round(400*mgMult());
+  openOverlay(`<h3>🏷️ Coupon Dash</h3><div class="sub">Tap 🏷️ coupons to cut this month's bills (up to ${money(cap)}). Avoid 🚫 scams — they shrink your savings!</div>
+    <div class="mg-hud"><span>⏱️ <span id="mg-time">7</span>s</span><span>✂️ <span id="mg-save">$0</span> off</span></div>
     <div id="playfield"></div>`);
   const field=$("playfield");
   const timer=setInterval(()=>{ time--; $("mg-time").textContent=time; if(time<=0) end(); },1000);
-  const spawner=setInterval(spawn,520);
-  function spawn(){ const c=document.createElement("div"); c.className="coin";
-    const val=Math.round((25+Math.floor(Math.random()*5)*12)*mgMult()); c.textContent="🏷️";
-    c.style.left=(8+Math.random()*78)+"%"; c.style.top=(8+Math.random()*72)+"%";
-    c.onclick=()=>{ if(saved>=cap) return; saved=Math.min(cap,saved+val); $("mg-save").textContent=money(saved); sfx("coin"); c.textContent="✅"; c.style.pointerEvents="none"; setTimeout(()=>c.remove(),120); };
-    field.appendChild(c); setTimeout(()=>c.remove(),1100);
+  const spawner=setInterval(spawn,450);
+  function spawn(){
+    const scam=Math.random()<0.3;
+    const c=document.createElement("div"); c.className="coin"; c.style.fontSize="30px";
+    const val=Math.round((18+Math.floor(Math.random()*4)*10)*mgMult());
+    c.textContent = scam?"🚫":"🏷️";
+    c.style.left=(6+Math.random()*82)+"%"; c.style.top=(6+Math.random()*76)+"%";
+    c.onclick=()=>{
+      if(scam){ saved=Math.max(0,saved-70); sfx("bad"); c.textContent="💢"; }
+      else { saved=Math.min(cap,saved+val); sfx("coin"); c.textContent="✅"; }
+      $("mg-save").textContent=money(saved); c.style.pointerEvents="none"; setTimeout(()=>c.remove(),120);
+    };
+    field.appendChild(c); setTimeout(()=>c.remove(),760);
   }
   function end(){ clearInterval(timer); clearInterval(spawner); S.discount=saved; if(saved>0) sfx("win");
-    $("playfield").parentElement.innerHTML=`<h3>Snipped! ✂️</h3><div class="sub">This month's needs reduced by</div><div class="big-num" style="color:var(--green)">${money(saved)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+    $("playfield").parentElement.innerHTML=`<h3>Time! ✂️</h3><div class="sub">This month's needs reduced by</div><div class="big-num" style="color:var(--green)">${money(saved)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
   }
 }
 // Day Trade — risky bet
@@ -797,7 +815,7 @@ function openTrade(){
 }
 function doTrade(betUp){
   const stake=+$("t-range").value; if(stake<=0){ toast("Pick a stake first"); return; }
-  const wentUp=Math.random()<(S.insider?0.5:0.47); const win=(betUp===wentUp);
+  const wentUp=Math.random()<(S.insider?0.5:0.45); const win=(betUp===wentUp);
   S.cash-=stake; if(win){ S.cash+=Math.round(stake*1.9); unlock("roller","High Roller"); sfx("win"); } else { sfx("bad"); }
   markDebt();
   $("ov").querySelector(".modal").innerHTML=`<h3>${win?"📈 You won! 🎉":"📉 You lost"}</h3>
@@ -806,30 +824,126 @@ function doTrade(betUp){
     <button class="primary" onclick="closeOv()">Back to budget →</button>`;
   if(win) confetti();
 }
-// Salary Negotiation — stop the marker in the green zone
+// Salary Negotiation — 3 rounds, shrinking zone, faster marker
 let _nego=null;
 function openNegotiate(){
   S.opp=null; sfx("click");
-  const zoneW=26, zoneL=37; // green zone 37%..63%
-  openOverlay(`<h3>🤝 Salary Negotiation</h3><div class="sub">Stop the marker in the green zone to land a permanent raise. Closer to center = bigger raise.</div>
-    <div class="nego-track"><div class="nego-zone" style="left:${zoneL}%;width:${zoneW}%"></div><div class="nego-marker" id="nego-marker" style="left:0%"></div></div>
-    <button class="gold" id="nego-btn" onclick="stopNegotiate(${zoneL},${zoneW})">STOP!</button>
-    <button class="ghost" style="margin-top:8px" onclick="closeOv()">Walk away</button>`);
-  let pos=0,dir=1; const marker=$("nego-marker");
-  _nego={ raf:null, get pos(){return pos;} };
-  function loop(){ pos+=dir*1.6; if(pos>=100){pos=100;dir=-1;} if(pos<=0){pos=0;dir=1;} marker.style.left=pos+"%"; _nego.pos2=pos; _nego.raf=requestAnimationFrame(loop); }
+  _nego={ round:0, total:0, raf:null, pos:0, dir:1, rounds:[{w:22,speed:1.7},{w:15,speed:2.3},{w:10,speed:2.9}] };
+  openOverlay(`<h3>🤝 Salary Negotiation</h3><div class="sub">Three rounds — stop the marker in the green zone each time. It shrinks and speeds up. Clear all three for the biggest raise!</div>
+    <div class="mg-hud"><span>Round <span id="ng-round">1</span>/3</span><span>📈 <span id="ng-raise">+$0</span>/mo</span></div>
+    <div class="nego-track"><div class="nego-zone" id="ng-zone"></div><div class="nego-marker" id="ng-marker" style="left:0%"></div></div>
+    <button class="gold" id="ng-btn" onclick="negoStop()">STOP!</button>
+    <button class="ghost" style="margin-top:8px" onclick="negoBail()">Take current raise & leave</button>`);
+  negoStart();
+}
+function negoStart(){
+  const r=_nego.rounds[_nego.round]; const zoneL=50-r.w/2;
+  _nego.zoneL=zoneL; _nego.zoneW=r.w; _nego.pos=0; _nego.dir=1;
+  $("ng-round").textContent=_nego.round+1;
+  const zone=$("ng-zone"); zone.style.left=zoneL+"%"; zone.style.width=r.w+"%";
+  const marker=$("ng-marker");
+  function loop(){ _nego.pos+=_nego.dir*r.speed; if(_nego.pos>=100){_nego.pos=100;_nego.dir=-1;} if(_nego.pos<=0){_nego.pos=0;_nego.dir=1;} marker.style.left=_nego.pos+"%"; _nego.raf=requestAnimationFrame(loop); }
   loop();
 }
-function stopNegotiate(zoneL,zoneW){
-  if(_nego&&_nego.raf) cancelAnimationFrame(_nego.raf);
-  const pos=_nego.pos2||0; const center=zoneL+zoneW/2;
-  const inZone = pos>=zoneL && pos<=zoneL+zoneW;
-  let msg,raise=0;
-  if(inZone){ const closeness=1-Math.abs(pos-center)/(zoneW/2); raise=Math.round(150+closeness*350); S.income+=raise; unlock("negotiator","Smooth Talker"); sfx("win"); confetti();
-    msg=`<h3>🎉 Nailed it!</h3><div class="sub">Permanent raise</div><div class="big-num" style="color:var(--green)">+${money(raise)}/mo</div>`;
-  } else { S.happy=clamp(S.happy-2,0,100); sfx("bad");
-    msg=`<h3>😬 Missed</h3><div class="sub">No raise this time — and a little bruised pride.</div><div class="big-num" style="color:var(--red)">+$0</div>`; }
-  $("ov").querySelector(".modal").innerHTML=msg+`<button class="primary" onclick="closeOv()">Back to budget →</button>`;
+function negoStop(){
+  if(_nego.raf) cancelAnimationFrame(_nego.raf);
+  const pos=_nego.pos, zoneL=_nego.zoneL, zoneW=_nego.zoneW, center=zoneL+zoneW/2;
+  if(pos>=zoneL && pos<=zoneL+zoneW){
+    const closeness=1-Math.abs(pos-center)/(zoneW/2);
+    _nego.total+=Math.round(110+closeness*180); $("ng-raise").textContent="+"+money(_nego.total);
+    sfx("coin"); _nego.round++;
+    if(_nego.round>=3) return negoFinish(true);
+    setTimeout(negoStart,400);
+  } else { negoFinish(false); }
+}
+function negoBail(){ if(_nego.raf) cancelAnimationFrame(_nego.raf); negoFinish(null); }
+function negoFinish(perfect){
+  if(_nego.raf) cancelAnimationFrame(_nego.raf);
+  const raise=_nego.total; if(raise>0){ S.income+=raise; unlock("negotiator","Smooth Talker"); }
+  if(perfect===true){ confetti(); sfx("win"); } else if(raise>0){ sfx("confirm"); } else { sfx("bad"); S.happy=clamp(S.happy-2,0,100); }
+  const head = perfect===true?"🎉 Flawless negotiation!" : raise>0?"🤝 Deal closed" : "😬 Negotiation fell apart";
+  $("ov").querySelector(".modal").innerHTML=`<h3>${head}</h3><div class="sub">Permanent raise</div><div class="big-num" style="color:${raise>0?'var(--green)':'var(--red)'}">+${money(raise)}/mo</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+}
+// Market Pattern — Simon-style memory, gets longer each round
+function openMemory(){
+  S.opp=null; sfx("click");
+  const ICONS=["🛡️","🐢","🎢","🏠"];
+  let seq=[], round=0, earned=0, accepting=false, input=[];
+  openOverlay(`<h3>🧠 Market Pattern</h3><div class="sub">Watch the sequence, then repeat it. Each round adds one more — a single slip ends it, so bank what you can!</div>
+    <div class="mg-hud"><span>Round <span id="mg-round">1</span></span><span>💰 <span id="mg-earn">$0</span></span></div>
+    <div id="memgrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px"></div>
+    <div id="memstatus" class="center sub" style="margin-top:10px">Get ready...</div>`);
+  const grid=$("memgrid"); const btns={};
+  ICONS.forEach(ic=>{ const b=document.createElement("button"); b.textContent=ic; b.style.fontSize="32px"; b.style.padding="18px"; b.disabled=true; b.onclick=()=>handle(ic); grid.appendChild(b); btns[ic]=b; });
+  function flash(ic,on){ btns[ic].style.background=on?"var(--accent2)":"var(--panel-2)"; btns[ic].style.transform=on?"scale(1.04)":"none"; }
+  function nextRound(){
+    round++; $("mg-round").textContent=round; input=[]; accepting=false;
+    ICONS.forEach(ic=>btns[ic].disabled=true);
+    seq.push(ICONS[Math.floor(Math.random()*4)]);
+    $("memstatus").textContent="Watch...";
+    let i=0; const speed=Math.max(360,640-round*30);
+    const iv=setInterval(()=>{
+      if(i>0) flash(seq[i-1],false);
+      if(i>=seq.length){ clearInterval(iv); accepting=true; ICONS.forEach(ic=>btns[ic].disabled=false); $("memstatus").textContent="Your turn!"; return; }
+      flash(seq[i],true); sfx("click"); i++;
+    }, speed);
+  }
+  function handle(ic){
+    if(!accepting) return;
+    input.push(ic); flash(ic,true); setTimeout(()=>flash(ic,false),130);
+    const idx=input.length-1;
+    if(input[idx]!==seq[idx]) return end(false);
+    if(input.length===seq.length){
+      earned+=Math.round((35+round*25)*mgMult()); $("mg-earn").textContent=money(earned); sfx("coin");
+      accepting=false; ICONS.forEach(ic=>btns[ic].disabled=true); setTimeout(nextRound,650);
+    }
+  }
+  function end(){
+    accepting=false; ICONS.forEach(ic=>btns[ic].disabled=true);
+    S.cash+=earned; S.hustleEarned+=earned; if(earned>=250) unlock("brainiac","Pattern Master");
+    sfx(earned>0?"win":"bad");
+    $("ov").querySelector(".modal").innerHTML=`<h3>❌ Missed it! 🧠</h3><div class="sub">You banked</div><div class="big-num" style="color:var(--green)">${money(earned)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+  }
+  setTimeout(nextRound,500);
+}
+// Budget Blitz — quick finance math under a timer
+function openBlitz(){
+  S.opp=null; sfx("click");
+  const Q=[]; for(let i=0;i<4;i++) Q.push(genQ());
+  function genQ(){
+    const type=Math.floor(Math.random()*3); let text,ans;
+    if(type===0){ const inc=Math.round((1500+Math.random()*2500)/50)*50, sp=Math.round((400+Math.random()*1000)/50)*50; text=`Income $${inc.toLocaleString()} − spending $${sp.toLocaleString()} = ?`; ans=inc-sp; }
+    else if(type===1){ const p=Math.round((400+Math.random()*1600)/50)*50, r=[5,10,15,20][Math.floor(Math.random()*4)]; text=`What is ${r}% of $${p.toLocaleString()}?`; ans=Math.round(p*r/100); }
+    else { const a=Math.round((300+Math.random()*800)/10)*10, b=Math.round((200+Math.random()*600)/10)*10, c=Math.round((100+Math.random()*400)/10)*10; text=`Add the bills: $${a} + $${b} + $${c} = ?`; ans=a+b+c; }
+    const opts=new Set([ans]); let guard=0;
+    while(opts.size<4 && guard++<40){ const d=Math.round((ans+(Math.random()-0.5)*Math.max(80,ans*0.35))/10)*10; if(d>0 && d!==ans) opts.add(d); }
+    return { text, ans, opts:[...opts].sort(()=>Math.random()-0.5) };
+  }
+  let qi=0, correct=0, time=6, timer=null;
+  openOverlay(`<h3>🧮 Budget Blitz</h3><div class="sub">Answer fast — each question is on a clock. Every correct answer pays out.</div>
+    <div class="mg-hud"><span>Q <span id="bz-q">1</span>/4</span><span>⏱️ <span id="bz-time">6</span>s</span></div>
+    <div id="bz-text" class="event" style="font-size:16px;text-align:center"></div>
+    <div id="bz-opts"></div>`);
+  function show(){
+    if(qi>=Q.length) return end();
+    time=6; $("bz-q").textContent=qi+1; $("bz-time").textContent=time;
+    const q=Q[qi]; $("bz-text").textContent=q.text;
+    const wrap=$("bz-opts"); wrap.innerHTML="";
+    q.opts.forEach(o=>{ const b=document.createElement("button"); b.textContent="$"+o.toLocaleString(); b.style.marginBottom="8px"; b.onclick=()=>answer(o); wrap.appendChild(b); });
+    clearInterval(timer); timer=setInterval(()=>{ time--; $("bz-time").textContent=time; if(time<=0) answer(null); },1000);
+  }
+  function answer(o){
+    clearInterval(timer); const q=Q[qi];
+    if(o===q.ans){ correct++; sfx("coin"); } else sfx("bad");
+    qi++; show();
+  }
+  function end(){
+    const earned=Math.round(correct*115*mgMult()); S.cash+=earned; S.hustleEarned+=earned;
+    if(correct===4) unlock("mathwhiz","Numbers Whiz");
+    sfx(earned>0?"win":"bad");
+    $("ov").querySelector(".modal").innerHTML=`<h3>🧮 ${correct}/4 correct</h3><div class="sub">You earned</div><div class="big-num" style="color:var(--green)">${money(earned)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+  }
+  show();
 }
 
 // ============================ ENDINGS ============================
@@ -919,7 +1033,7 @@ function checkUnlocks(grade,score){
   return newly;
 }
 function badgeName(id){
-  return { invested:"Five-Figure Investor", prepared:"Prepared", zen:"Master of Restraint", diamond:"Diamond Hands", hustler:"Side Hustler", roller:"High Roller", negotiator:"Smooth Talker" }[id]||id;
+  return { invested:"Five-Figure Investor", prepared:"Prepared", zen:"Master of Restraint", diamond:"Diamond Hands", hustler:"Side Hustler", roller:"High Roller", negotiator:"Smooth Talker", brainiac:"Pattern Master", mathwhiz:"Numbers Whiz" }[id]||id;
 }
 
 // boot
