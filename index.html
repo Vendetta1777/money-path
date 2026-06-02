@@ -6,111 +6,166 @@
 <title>Money Path — a mini finance game</title>
 <style>
   :root {
-    --bg: #0d1117;
-    --panel: #161b22;
-    --panel-2: #1c2330;
-    --border: #2d3543;
-    --text: #e6edf3;
-    --muted: #8b97a7;
-    --green: #3fb950;
-    --red: #f85149;
-    --blue: #58a6ff;
-    --gold: #e3b341;
-    --accent: #7c5cff;
+    --bg: #0b0f17;
+    --panel: #151b26;
+    --panel-2: #1d2533;
+    --border: #2b3445;
+    --text: #e9eef6;
+    --muted: #8d9bb0;
+    --green: #3fdd7a;
+    --red: #ff6b6b;
+    --blue: #5aa9ff;
+    --gold: #ffd24a;
+    --accent: #8b6bff;
+    --accent2: #00d4ff;
   }
   * { box-sizing: border-box; }
+  html,body { margin:0; }
   body {
-    margin: 0;
-    background: radial-gradient(1200px 600px at 50% -10%, #1b2233 0%, var(--bg) 60%);
+    background:
+      radial-gradient(1000px 500px at 15% -10%, #20284a 0%, transparent 55%),
+      radial-gradient(900px 500px at 95% 0%, #133040 0%, transparent 50%),
+      var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    min-height: 100vh;
-    padding: 16px;
+    min-height: 100vh; padding: 14px;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; }
-  header.app { text-align: center; margin: 12px 0 18px; }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  header.app { text-align: center; margin: 10px 0 14px; }
   header.app h1 {
-    margin: 0; font-size: 32px; letter-spacing: -0.5px;
-    background: linear-gradient(90deg, #7c5cff, #58a6ff, #3fb950);
+    margin: 0; font-size: 34px; letter-spacing: -1px; font-weight: 800;
+    background: linear-gradient(90deg, #8b6bff, #00d4ff, #3fdd7a);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-  header.app p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  header.app p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+  /* progress */
+  .progress-wrap { margin: 0 0 12px; }
+  .progress-track { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; border:1px solid var(--border); }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s ease; }
 
   /* HUD */
   .hud {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px; margin-bottom: 14px;
+    background: linear-gradient(180deg, var(--panel), #121826);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 12px; margin-bottom: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.35);
   }
-  .hud .stat { text-align: center; padding: 4px; }
-  .hud .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
-  .hud .stat .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-  .bar { height: 6px; background: var(--panel-2); border-radius: 4px; overflow: hidden; margin-top: 5px; }
-  .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #f85149, #e3b341, #3fb950); transition: width .4s; }
+  .hud .stat { text-align: center; padding: 2px; }
+  .hud .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+  .hud .stat .value { font-size: 19px; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .bar { height: 7px; background: #0d1320; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .bar > span { display: block; height: 100%; background: linear-gradient(90deg, #ff6b6b, #ffd24a, #3fdd7a); transition: width .45s; }
 
   .card {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 20px; margin-bottom: 14px;
-    animation: pop .25s ease;
+    background: linear-gradient(180deg, var(--panel), #121826);
+    border: 1px solid var(--border);
+    border-radius: 18px; padding: 22px; margin-bottom: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    animation: pop .28s cubic-bezier(.2,.7,.3,1);
   }
-  @keyframes pop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .card h2 { margin: 0 0 4px; font-size: 20px; }
-  .card .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  @keyframes pop { from { transform: translateY(10px) scale(.99); opacity: 0; } to { transform: none; opacity: 1; } }
+  .card h2 { margin: 0 0 4px; font-size: 21px; }
+  .card .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
 
   .event {
     border-left: 3px solid var(--accent); background: var(--panel-2);
-    padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 14px;
+    padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 14px; line-height: 1.5;
   }
   .event.good { border-color: var(--green); }
   .event.bad { border-color: var(--red); }
-  .event .amt { font-weight: 700; }
+  .amt { font-weight: 800; font-variant-numeric: tabular-nums; }
   .amt.pos { color: var(--green); } .amt.neg { color: var(--red); }
 
-  /* Allocation */
-  .alloc-row { margin-bottom: 14px; }
-  .alloc-row .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-  .alloc-row .name { font-weight: 600; }
+  /* allocation */
+  .alloc-bar { display:flex; height:16px; border-radius:8px; overflow:hidden; border:1px solid var(--border); margin: 4px 0 16px; background:#0d1320; }
+  .alloc-bar > div { transition: width .15s; }
+  .seg-fun{background:#ff8fb3} .seg-save{background:#5aa9ff} .seg-bonds{background:#3fdd7a} .seg-stocks{background:#ffd24a} .seg-cash{background:#39435a}
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--muted); margin-bottom:14px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:middle; }
+
+  .alloc-row { margin-bottom: 12px; }
+  .alloc-row .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .alloc-row .name { font-weight: 700; font-size:14px; }
   .alloc-row .name small { color: var(--muted); font-weight: 400; display: block; font-size: 11px; }
-  .alloc-row .num { font-variant-numeric: tabular-nums; font-weight: 700; }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .alloc-row .num { font-variant-numeric: tabular-nums; font-weight: 800; }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 22px; }
   .remaining { text-align: center; font-size: 14px; color: var(--muted); margin: 10px 0; }
-  .remaining b { color: var(--text); font-size: 16px; }
+  .remaining b { color: var(--text); font-size: 17px; }
 
   button {
     font: inherit; cursor: pointer; border: 1px solid var(--border);
-    background: var(--panel-2); color: var(--text); padding: 11px 16px;
-    border-radius: 10px; font-weight: 600; transition: .15s; width: 100%;
+    background: var(--panel-2); color: var(--text); padding: 12px 16px;
+    border-radius: 12px; font-weight: 700; transition: .14s; width: 100%;
   }
-  button:hover { border-color: var(--accent); transform: translateY(-1px); }
-  button.primary { background: linear-gradient(90deg, #7c5cff, #58a6ff); border: none; color: #fff; }
+  button:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow:0 6px 18px rgba(139,107,255,.25); }
+  button:active { transform: translateY(0); }
+  button.primary { background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; color: #07101c; }
+  button.gold { background: linear-gradient(90deg, #ffd24a, #ff9d3c); border:none; color:#3a2400; }
   button.ghost { background: transparent; }
-  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow:none; }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .preset-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .preset-row button { padding:8px 12px; font-size:12px; width:auto; flex:1; }
 
-  .market-news { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-  .holding { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-  .holding:last-child { border: none; }
-
-  .big-num { font-size: 30px; font-weight: 800; text-align: center; margin: 6px 0; }
+  .market-news { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .big-num { font-size: 32px; font-weight: 800; text-align: center; margin: 8px 0; font-variant-numeric: tabular-nums; }
   .center { text-align: center; }
-  .pill { display: inline-block; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--muted); }
-  .grade { font-size: 56px; font-weight: 800; }
-  ul.tips { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .pill { display: inline-block; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 13px; font-size: 12px; color: var(--muted); }
+  .grade { font-size: 64px; font-weight: 900; line-height:1; }
+  ul.tips { font-size: 13px; color: var(--muted); line-height: 1.7; padding-left:18px; }
   .situation-pick { display: grid; gap: 10px; }
-  .situation-pick button { text-align: left; padding: 14px 16px; }
-  .situation-pick .stitle { font-weight: 700; font-size: 15px; }
+  .situation-pick button { text-align: left; padding: 15px 16px; }
+  .situation-pick .stitle { font-weight: 800; font-size: 15px; }
   .situation-pick .sdesc { color: var(--muted); font-size: 12px; margin-top: 3px; }
-  footer { text-align: center; color: var(--muted); font-size: 12px; margin: 24px 0 8px; }
-  .log { font-size: 12px; color: var(--muted); max-height: 120px; overflow-y: auto; }
-  .log div { padding: 2px 0; }
+  .diff { float:right; font-size:11px; padding:2px 8px; border-radius:99px; }
+  .diff.easy{background:rgba(63,221,122,.15);color:var(--green)} .diff.med{background:rgba(255,210,74,.15);color:var(--gold)} .diff.hard{background:rgba(255,107,107,.15);color:var(--red)}
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin: 22px 0 10px; }
+
+  /* chart */
+  canvas#chart { width:100%; height:140px; display:block; background:#0d1320; border:1px solid var(--border); border-radius:12px; }
+
+  /* opportunity banner */
+  .opp { border:1px dashed var(--accent2); background:rgba(0,212,255,.06); border-radius:12px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px; justify-content:space-between; }
+  .opp .txt { font-size:13px; }
+  .opp button { width:auto; padding:8px 14px; font-size:13px; }
+
+  /* modal */
+  .overlay { position:fixed; inset:0; background:rgba(5,8,14,.78); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:50; animation:pop .2s; padding:16px; }
+  .modal { background:linear-gradient(180deg,var(--panel),#0f1420); border:1px solid var(--border); border-radius:18px; padding:22px; max-width:420px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .modal h3 { margin:0 0 4px; font-size:20px; }
+  .modal .sub { color:var(--muted); font-size:13px; margin-bottom:14px; }
+  #playfield { position:relative; height:280px; background:#0d1320; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .coin { position:absolute; font-size:34px; cursor:pointer; user-select:none; transition:transform .08s; animation:coinIn .15s; }
+  .coin:active { transform:scale(.8); }
+  @keyframes coinIn { from{transform:scale(.3);opacity:0} to{transform:scale(1);opacity:1} }
+  .mg-hud { display:flex; justify-content:space-between; font-weight:800; margin-bottom:8px; font-variant-numeric:tabular-nums; }
+
+  /* toast */
+  #toasts { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:80; display:flex; flex-direction:column; gap:8px; align-items:center; width:100%; pointer-events:none; }
+  .toast { background:linear-gradient(90deg,#2a2150,#14233a); border:1px solid var(--accent); color:#fff; padding:10px 16px; border-radius:99px; font-size:13px; font-weight:700; box-shadow:0 8px 24px rgba(0,0,0,.5); animation:toastIn .3s; }
+  @keyframes toastIn { from{transform:translateY(-16px);opacity:0} to{transform:none;opacity:1} }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:90; }
+
+  .badges { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:12px 0; }
+  .badge { background:var(--panel-2); border:1px solid var(--border); border-radius:99px; padding:6px 12px; font-size:12px; }
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0; text-align:left; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="app">
     <h1>💸 Money Path</h1>
-    <p>Earn it. Budget it. Invest it. Survive 24 months — and don't forget to enjoy life.</p>
+    <p>Earn it. Budget it. Invest it. Survive 24 months — and actually enjoy life.</p>
   </header>
+
+  <div id="progress" class="progress-wrap" style="display:none">
+    <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+  </div>
 
   <div id="hud" class="hud" style="display:none">
     <div class="stat"><div class="label">Month</div><div class="value" id="hud-month">1/24</div></div>
@@ -120,428 +175,537 @@
   </div>
 
   <div id="screen"></div>
-
-  <footer>A mini finance game · play again for a totally different run</footer>
+  <footer>A mini finance game · every run is different — beat your high score</footer>
 </div>
+
+<div id="toasts"></div>
+<canvas id="confetti"></canvas>
 
 <script>
 "use strict";
 
-// ----- Data tables -------------------------------------------------------
+// ============================ DATA ============================
+const TOTAL_MONTHS = 24;
+
 const SITUATIONS = [
-  { id:"student", name:"🎓 College Student", income:1900, needs:1450, happy:62,
-    desc:"Tight income, low expenses. Forgiving start — good for your first run." },
-  { id:"gig", name:"🚗 Gig Worker", income:2400, needs:1700, happy:55, volatile:true,
+  { id:"student", name:"🎓 College Student", income:1900, needs:1400, happy:64, diff:"easy",
+    desc:"Tight income, low expenses. Forgiving — perfect for your first run." },
+  { id:"gig", name:"🚗 Gig Worker", income:2500, needs:1750, happy:56, volatile:true, diff:"med",
     desc:"Income swings wildly month to month. Cash flow is your enemy." },
-  { id:"pro", name:"💼 Young Professional", income:4200, needs:2900, happy:65,
-    desc:"More money, more lifestyle creep. Can you avoid spending it all?" },
-  { id:"parent", name:"👨‍👧 Single Parent", income:3600, needs:2950, happy:50,
-    desc:"High responsibilities, thin margins. The hard mode." },
+  { id:"pro", name:"💼 Young Professional", income:4300, needs:2950, happy:66, diff:"med",
+    desc:"Good money, but lifestyle creep is real. Don't spend it all." },
+  { id:"parent", name:"👨‍👧 Single Parent", income:3700, needs:3050, happy:50, diff:"hard",
+    desc:"High responsibilities, razor-thin margins. Hard mode." },
 ];
 
 const EVENTS = [
-  { t:"Your car broke down. Repair bill arrives.", amt:-650, kind:"bad" },
-  { t:"Surprise medical bill in the mail.", amt:-900, kind:"bad" },
-  { t:"You got a performance bonus at work!", amt:1100, kind:"good" },
-  { t:"Tax refund hit your account.", amt:700, kind:"good" },
-  { t:"Your phone screen shattered.", amt:-400, kind:"bad" },
-  { t:"Invited to a friend's destination wedding.", amt:-450, kind:"bad" },
-  { t:"You found cash in an old jacket.", amt:120, kind:"good" },
-  { t:"Laptop died — you need a replacement.", amt:-800, kind:"bad" },
-  { t:"Won a small raffle prize.", amt:300, kind:"good" },
-  { t:"Vet bill for your pet.", amt:-350, kind:"bad" },
-  { t:"Sold some old stuff online.", amt:250, kind:"good" },
-  { t:"Parking ticket. Ouch.", amt:-110, kind:"bad" },
+  { t:"🔧 Your car broke down. Repair bill arrives.", amt:-650, kind:"bad" },
+  { t:"🏥 Surprise medical bill in the mail.", amt:-900, kind:"bad" },
+  { t:"🎉 You got a performance bonus at work!", amt:1100, kind:"good" },
+  { t:"🧾 Tax refund hit your account.", amt:700, kind:"good" },
+  { t:"📱 Your phone screen shattered.", amt:-400, kind:"bad" },
+  { t:"💍 Invited to a friend's destination wedding.", amt:-450, kind:"bad" },
+  { t:"🧥 You found cash in an old jacket.", amt:120, kind:"good" },
+  { t:"💻 Laptop died — you need a replacement.", amt:-800, kind:"bad" },
+  { t:"🎰 Won a small raffle prize.", amt:300, kind:"good" },
+  { t:"🐶 Vet bill for your pet.", amt:-350, kind:"bad" },
+  { t:"📦 Sold some old stuff online.", amt:250, kind:"good" },
+  { t:"🅿️ Parking ticket. Ouch.", amt:-110, kind:"bad" },
 ];
-const RAISE_EVENT = { t:"You earned a permanent raise! Monthly income goes up.", raise:400, kind:"good" };
-const CUT_EVENT = { t:"Your hours got cut. Monthly income drops for a while.", cut:500, months:3, kind:"bad" };
+const RAISE_EVENT = { t:"📈 You earned a permanent raise! Monthly income goes up.", raise:400, kind:"good" };
+const CUT_EVENT = { t:"✂️ Your hours got cut. Income drops for a few months.", cut:500, months:3, kind:"bad" };
 
 const TEMPTATIONS = [
-  { t:"🎮 Latest gaming console", cost:550, joy:14 },
-  { t:"📱 Brand-new flagship phone", cost:850, joy:16 },
-  { t:"✈️ Spontaneous weekend getaway", cost:500, joy:18 },
-  { t:"🎧 Premium noise-cancelling headphones", cost:320, joy:11 },
-  { t:"🧥 That designer jacket you saw", cost:400, joy:10 },
-  { t:"🎟️ Front-row concert tickets", cost:280, joy:13 },
-  { t:"🍽️ Fancy tasting-menu dinner", cost:180, joy:8 },
-  { t:"⌚ A nice watch", cost:600, joy:12 },
-  { t:"🚲 A fancy new bike", cost:700, joy:15 },
+  { t:"🎮 The latest gaming console", cost:550, joy:13 },
+  { t:"📱 A brand-new flagship phone", cost:850, joy:15 },
+  { t:"✈️ A spontaneous weekend getaway", cost:520, joy:18 },
+  { t:"🎧 Premium noise-cancelling headphones", cost:320, joy:10 },
+  { t:"🧥 That designer jacket you saw", cost:400, joy:9 },
+  { t:"🎟️ Front-row concert tickets", cost:280, joy:12 },
+  { t:"⌚ A nice watch", cost:600, joy:11 },
+  { t:"🚲 A fancy new bike", cost:700, joy:14 },
 ];
 
 const NEWS = [
-  { t:"📈 Tech earnings crush expectations — markets rally.", stock:0.07, bond:0.004 },
+  { t:"📈 Tech earnings crush expectations — markets rally.", stock:0.075, bond:0.004 },
   { t:"🟢 Inflation cools faster than feared.", stock:0.045, bond:0.006 },
   { t:"🏦 The Fed cuts interest rates.", stock:0.035, bond:0.008 },
   { t:"💪 Strong jobs report lifts confidence.", stock:0.03, bond:0.003 },
   { t:"🚀 Crypto and growth stocks surge.", stock:0.10, bond:0.002 },
-  { t:"😐 Mixed signals — markets drift sideways.", stock:0.005, bond:0.003 },
+  { t:"😐 Mixed signals — markets drift sideways.", stock:0.004, bond:0.003 },
   { t:"🌧️ Recession fears creep in.", stock:-0.05, bond:0.005 },
-  { t:"📉 A sharp market correction hits stocks.", stock:-0.085, bond:0.004 },
+  { t:"📉 A sharp market correction hits stocks.", stock:-0.085, bond:0.004, crash:true },
   { t:"🌍 Geopolitical tensions rattle investors.", stock:-0.04, bond:0.006 },
-  { t:"💥 A speculative bubble bursts.", stock:-0.11, bond:0.003 },
-  { t:"🟡 Earnings season is a mixed bag.", stock:-0.01, bond:0.004 },
+  { t:"💥 A speculative bubble bursts!", stock:-0.11, bond:0.003, crash:true },
+  { t:"🟡 Earnings season is a mixed bag.", stock:-0.012, bond:0.004 },
 ];
 
-const TOTAL_MONTHS = 24;
-
-// ----- State -------------------------------------------------------------
+// ============================ STATE ============================
 let S = null;
-function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function money(n){ const r=Math.round(n); return (r<0?"-$":"$")+Math.abs(r).toLocaleString(); }
-function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+const rand = a => a[Math.floor(Math.random()*a.length)];
+const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
+const money = n => { const r=Math.round(n); return (r<0?"-$":"$")+Math.abs(r).toLocaleString(); };
+const $ = id => document.getElementById(id);
+const screen = () => $("screen");
 
 function newGame(sit){
   S = {
-    sit,
-    month: 1,
-    income: sit.income,
-    needs: sit.needs,
-    cash: 800,
-    savings: 0,      // emergency fund: tiny safe interest, instant access
-    bonds: 0,        // safe investments
-    stocks: 0,       // risky investments
-    happy: sit.happy,
-    cutLeft: 0,
-    log: [],
-    pendingTempt: null,
-    pendingNews: null,
+    sit, month:1,
+    income: sit.income, baseNeeds: sit.needs, needs: sit.needs,
+    cash: 700, savings:0, bonds:0, stocks:0,
+    happy: sit.happy, cutLeft:0,
+    history:[700], badges:new Set(),
+    temptResisted:0, oppUsed:false,
   };
   startMonth();
 }
+const netWorth = () => S.cash + S.savings + S.bonds + S.stocks;
 
-function netWorth(){ return S.cash + S.savings + S.bonds + S.stocks; }
-
+// ============================ HUD / CHART ============================
 function updateHUD(){
-  document.getElementById("hud").style.display = "grid";
-  document.getElementById("hud-month").textContent = S.month + "/" + TOTAL_MONTHS;
-  document.getElementById("hud-net").textContent = money(netWorth());
-  document.getElementById("hud-cash").textContent = money(S.cash);
-  document.getElementById("hud-happy").textContent = Math.round(S.happy);
-  document.getElementById("hud-happy-bar").style.width = clamp(S.happy,0,100)+"%";
+  $("hud").style.display="grid"; $("progress").style.display="block";
+  $("hud-month").textContent = S.month+"/"+TOTAL_MONTHS;
+  animateNum($("hud-net"), netWorth(), true);
+  animateNum($("hud-cash"), S.cash, true);
+  $("hud-happy").textContent = Math.round(S.happy);
+  $("hud-happy-bar").style.width = clamp(S.happy,0,100)+"%";
+  $("progress-fill").style.width = ((S.month-1)/TOTAL_MONTHS*100)+"%";
+}
+function animateNum(el, target, isMoney){
+  const start = parseFloat(el.dataset.v||"0"); const t0=performance.now(); const dur=550;
+  function step(now){
+    const p = Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-p,3);
+    const v = start+(target-start)*e;
+    el.textContent = isMoney?money(v):Math.round(v);
+    if(p<1) requestAnimationFrame(step); else el.dataset.v=target;
+  }
+  el.dataset.v=start; requestAnimationFrame(step);
+}
+function drawChart(){
+  const c = $("chart"); if(!c) return;
+  const dpr = window.devicePixelRatio||1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width=w*dpr; c.height=h*dpr; const x=c.getContext("2d"); x.scale(dpr,dpr);
+  const d = S.history; if(d.length<2){ return; }
+  const min = Math.min(...d, 0), max = Math.max(...d)*1.1+1;
+  const px = i => 10 + i*(w-20)/(d.length-1);
+  const py = v => h-14 - (v-min)/(max-min)*(h-26);
+  // zero line
+  x.strokeStyle="#243049"; x.lineWidth=1; x.beginPath(); x.moveTo(10,py(0)); x.lineTo(w-10,py(0)); x.stroke();
+  // area
+  const grad=x.createLinearGradient(0,0,0,h); grad.addColorStop(0,"rgba(0,212,255,.35)"); grad.addColorStop(1,"rgba(0,212,255,0)");
+  x.beginPath(); x.moveTo(px(0),py(d[0]));
+  d.forEach((v,i)=>x.lineTo(px(i),py(v)));
+  x.lineTo(px(d.length-1),h-14); x.lineTo(px(0),h-14); x.closePath(); x.fillStyle=grad; x.fill();
+  // line
+  x.beginPath(); x.moveTo(px(0),py(d[0]));
+  d.forEach((v,i)=>x.lineTo(px(i),py(v)));
+  x.strokeStyle="#00d4ff"; x.lineWidth=2.5; x.lineJoin="round"; x.stroke();
+  // last dot
+  const li=d.length-1; x.beginPath(); x.arc(px(li),py(d[li]),4,0,7); x.fillStyle="#fff"; x.fill();
 }
 
-const screen = () => document.getElementById("screen");
+// ============================ TOAST / CONFETTI / BADGES ============================
+function toast(msg){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  $("toasts").appendChild(t);
+  setTimeout(()=>{ t.style.transition="opacity .4s,transform .4s"; t.style.opacity="0"; t.style.transform="translateY(-10px)"; }, 2600);
+  setTimeout(()=>t.remove(), 3100);
+}
+function unlock(id, label){
+  if(S.badges.has(id)) return; S.badges.add(id); toast("🏅 Achievement: "+label);
+}
+function confetti(){
+  const c=$("confetti"); const dpr=window.devicePixelRatio||1;
+  c.width=innerWidth*dpr; c.height=innerHeight*dpr; const x=c.getContext("2d"); x.scale(dpr,dpr);
+  const cols=["#8b6bff","#00d4ff","#3fdd7a","#ffd24a","#ff6b6b"];
+  const P=Array.from({length:140},()=>({x:Math.random()*innerWidth,y:-20-Math.random()*200,vx:(Math.random()-.5)*4,vy:2+Math.random()*4,s:5+Math.random()*7,c:rand(cols),r:Math.random()*6,vr:(Math.random()-.5)*.4}));
+  let frames=0;
+  (function anim(){
+    x.clearRect(0,0,innerWidth,innerHeight); frames++;
+    P.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.08; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); x.restore(); });
+    if(frames<150) requestAnimationFrame(anim); else x.clearRect(0,0,innerWidth,innerHeight);
+  })();
+}
 
-// ----- Screens -----------------------------------------------------------
+// ============================ START SCREEN ============================
 function showStart(){
-  document.getElementById("hud").style.display = "none";
-  let html = `<div class="card">
-    <h2>Choose your life situation</h2>
-    <div class="sub">Each one plays completely differently. Pick one to begin a 24-month run.</div>
+  $("hud").style.display="none"; $("progress").style.display="none";
+  let html=`<div class="card"><h2>Choose your life</h2>
+    <div class="sub">Each path plays completely differently. Pick one to start a 24-month run.</div>
     <div class="situation-pick">`;
   SITUATIONS.forEach((s,i)=>{
-    html += `<button onclick="newGame(SITUATIONS[${i}])">
+    const dl = s.diff==="easy"?"Easy":s.diff==="med"?"Medium":"Hard";
+    html+=`<button onclick="newGame(SITUATIONS[${i}])">
+      <span class="diff ${s.diff}">${dl}</span>
       <div class="stitle">${s.name}</div>
       <div class="sdesc">${s.desc}</div>
       <div class="sdesc">Income ~${money(s.income)}/mo · Needs ${money(s.needs)}/mo</div>
     </button>`;
   });
-  html += `</div></div>`;
-  screen().innerHTML = html;
+  html+=`</div></div>
+  <div class="card"><h2>How to win 🏆</h2>
+    <div class="sub" style="margin:0">Your final <b>Score = Net Worth × Happiness</b>. Hoard every penny and you'll be rich but miserable (low score). Blow it all on fun and you'll go broke. The skill is <b>balance</b>: spend a little, save a buffer, and invest the rest so it compounds.</div>
+  </div>`;
+  screen().innerHTML=html;
 }
 
-// PHASE 1: income + event + budget allocation
+// ============================ MONTH START ============================
 function startMonth(){
-  // determine this month's income (with volatility / cuts)
+  // debt interest
+  if(S.cash < 0){ S.cash = Math.round(S.cash*1.05); }
+  // income (volatility / cuts)
   let inc = S.income;
-  if (S.sit.volatile) inc = Math.round(S.income * (0.6 + Math.random()*0.8));
-  if (S.cutLeft > 0){ inc -= CUT_EVENT.cut; S.cutLeft--; }
+  if(S.sit.volatile) inc = Math.round(S.income*(0.55+Math.random()*0.85));
+  if(S.cutLeft>0){ inc -= CUT_EVENT.cut; S.cutLeft--; }
   S.thisIncome = Math.max(0, inc);
-
-  // maybe an event (55% chance)
-  S.thisEvent = null;
-  if (Math.random() < 0.55){
-    const roll = Math.random();
-    if (roll < 0.10){ S.income += RAISE_EVENT.raise; S.thisEvent = {...RAISE_EVENT}; }
-    else if (roll < 0.18 && S.cutLeft===0){ S.cutLeft = CUT_EVENT.months; S.thisEvent = {...CUT_EVENT}; }
-    else { S.thisEvent = {...rand(EVENTS)}; }
+  // event
+  S.thisEvent=null;
+  if(Math.random()<0.55){
+    const r=Math.random();
+    if(r<0.10){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; }
+    else if(r<0.18 && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
+    else S.thisEvent={...rand(EVENTS)};
   }
-
+  // opportunity (minigame) — 45% chance
+  S.opp = Math.random()<0.45 ? (Math.random()<0.6?"hustle":"trade") : null;
   renderBudget();
 }
 
 function renderBudget(){
   updateHUD();
-  const ev = S.thisEvent;
-  let evHtml = `<div class="event"><b>A quiet month.</b> No surprises.</div>`;
-  if (ev){
-    let line = ev.t;
-    let cls = ev.kind === "good" ? "good" : "bad";
-    let amtHtml = "";
-    if (ev.amt) amtHtml = ` <span class="amt ${ev.amt>0?'pos':'neg'}">${ev.amt>0?'+':''}${money(ev.amt)}</span>`;
-    if (ev.raise) amtHtml = ` <span class="amt pos">+${money(ev.raise)}/mo</span>`;
-    if (ev.cut) amtHtml = ` <span class="amt neg">-${money(ev.cut)}/mo for ${ev.months} mo</span>`;
-    evHtml = `<div class="event ${cls}">${line}${amtHtml}</div>`;
+  const ev=S.thisEvent;
+  let evHtml = `<div class="event"><b>🌤️ A quiet month.</b> No surprises this time.</div>`;
+  if(ev){
+    const cls = ev.kind==="good"?"good":"bad"; let a="";
+    if(ev.amt) a=` <span class="amt ${ev.amt>0?'pos':'neg'}">${ev.amt>0?'+':''}${money(ev.amt)}</span>`;
+    if(ev.raise) a=` <span class="amt pos">+${money(ev.raise)}/mo</span>`;
+    if(ev.cut) a=` <span class="amt neg">-${money(ev.cut)}/mo · ${ev.months}mo</span>`;
+    evHtml=`<div class="event ${cls}">${ev.t}${a}</div>`;
   }
-
-  // money on hand this month = cash + income + one-time event amount
-  const eventCash = (ev && ev.amt) ? ev.amt : 0;
+  const eventCash = (ev&&ev.amt)?ev.amt:0;
   const onHand = S.cash + S.thisIncome + eventCash;
   const afterNeeds = onHand - S.needs;
 
-  let html = `<div class="card">
-    <h2>Month ${S.month} — Budget</h2>
-    <div class="sub">Cover your needs first, then split what's left between enjoying life, saving, and investing.</div>
-    ${evHtml}
-    <div class="event">
-      Income this month: <span class="amt pos">+${money(S.thisIncome)}</span> ·
-      Needs (rent, food, bills): <span class="amt neg">-${money(S.needs)}</span><br>
-      <small style="color:var(--muted)">Starting cash ${money(S.cash)}${eventCash?` · event ${eventCash>0?'+':''}${money(eventCash)}`:''}</small>
-    </div>`;
-
-  if (afterNeeds < 0){
-    // Can't even cover needs from cash+income — must pull from reserves or go into debt
-    html += `<div class="event bad"><b>You can't fully cover your needs this month.</b>
-      We'll pull from your savings and investments automatically. Living on the edge hurts your happiness.</div>
-      <button class="primary" onclick="resolveTightMonth(${onHand})">Scrape through the month →</button>
-    </div>`;
-    screen().innerHTML = html;
-    return;
+  let oppHtml="";
+  if(S.opp){
+    oppHtml = S.opp==="hustle"
+      ? `<div class="opp"><span class="txt">🎯 <b>Side hustle available!</b> Play a quick game to earn extra cash.</span><button class="gold" onclick="openHustle()">Play</button></div>`
+      : `<div class="opp"><span class="txt">🎲 <b>Hot stock tip!</b> Risk some cash on a day trade?</span><button class="gold" onclick="openTrade()">Trade</button></div>`;
   }
 
-  html += `<div class="remaining">Left to allocate after needs: <b id="left">${money(afterNeeds)}</b></div>`;
+  let html=`<div class="card"><h2>Month ${S.month} — Budget</h2>
+    <div class="sub">Cover your needs, then split what's left. Spend a little, keep a buffer, invest the rest.</div>
+    ${evHtml}${oppHtml}
+    <div class="event">💵 Income <span class="amt pos">+${money(S.thisIncome)}</span> ·
+      🏠 Needs <span class="amt neg">-${money(S.needs)}</span>
+      ${S.needs>S.baseNeeds?`<small style="color:var(--gold)"> (lifestyle creep!)</small>`:""}<br>
+      <small style="color:var(--muted)">On hand: ${money(onHand)}${eventCash?` (incl. event ${eventCash>0?'+':''}${money(eventCash)})`:""}</small>
+    </div>`;
 
-  const buckets = [
-    { id:"fun",    name:"🎉 Fun",            note:"Spend on yourself → boosts happiness now" },
-    { id:"save",   name:"🏦 Emergency Fund", note:"Safe, instant access, tiny interest" },
-    { id:"bonds",  name:"🛡️ Safe Investing", note:"Bonds: steady ~0.4%/mo, low risk" },
-    { id:"stocks", name:"📈 Risky Investing", note:"Stocks: high reward, high swings" },
+  if(afterNeeds<0){
+    html+=`<div class="event bad"><b>You can't cover your needs this month.</b> We'll pull from savings, then sell investments (at a panic-sell loss), then borrow. This is what an emergency fund prevents.</div>
+      <button class="primary" onclick="resolveTight(${onHand})">Scrape through →</button></div>`;
+    screen().innerHTML=html; return;
+  }
+
+  const max=Math.floor(afterNeeds);
+  html+=`<div class="remaining">Left to allocate: <b id="left">${money(afterNeeds)}</b></div>
+    <div class="alloc-bar" id="abar">
+      <div class="seg-fun" id="ab-fun" style="width:0"></div>
+      <div class="seg-save" id="ab-save" style="width:0"></div>
+      <div class="seg-bonds" id="ab-bonds" style="width:0"></div>
+      <div class="seg-stocks" id="ab-stocks" style="width:0"></div>
+      <div class="seg-cash" id="ab-cash" style="width:100%"></div>
+    </div>
+    <div class="legend">
+      <span><i class="seg-fun"></i>Fun</span><span><i class="seg-save"></i>Emergency</span>
+      <span><i class="seg-bonds"></i>Bonds</span><span><i class="seg-stocks"></i>Stocks</span>
+      <span><i class="seg-cash"></i>Leftover cash</span>
+    </div>
+    <div class="preset-row">
+      <button onclick="preset('balanced',${max})">⚖️ Balanced</button>
+      <button onclick="preset('save',${max})">🛟 Saver</button>
+      <button onclick="preset('invest',${max})">📈 Investor</button>
+      <button onclick="preset('reset',${max})">↺ Clear</button>
+    </div>`;
+
+  const buckets=[
+    {id:"fun",n:"🎉 Fun",note:"Boosts happiness — but too much = lifestyle creep"},
+    {id:"save",n:"🏦 Emergency Fund",note:"Safe buffer for life's surprises"},
+    {id:"bonds",n:"🛡️ Bonds",note:"Steady ~0.4%/mo, low risk"},
+    {id:"stocks",n:"📈 Stocks",note:"High reward, high swings"},
   ];
   buckets.forEach(b=>{
-    html += `<div class="alloc-row">
-      <div class="top">
-        <span class="name">${b.name}<small>${b.note}</small></span>
-        <span class="num" id="num-${b.id}">$0</span>
-      </div>
-      <input type="range" min="0" max="${Math.floor(afterNeeds)}" value="0" step="10"
-        id="r-${b.id}" oninput="onSlide(${Math.floor(afterNeeds)})">
-    </div>`;
+    html+=`<div class="alloc-row"><div class="top">
+      <span class="name">${b.n}<small>${b.note}</small></span>
+      <span class="num" id="num-${b.id}">$0</span></div>
+      <input type="range" min="0" max="${max}" value="0" step="10" id="r-${b.id}" oninput="onSlide(${max})"></div>`;
   });
-
-  html += `<div class="btn-row">
-      <button class="ghost" onclick="autoBudget(${Math.floor(afterNeeds)})">Suggest a balanced split</button>
-      <button class="primary" onclick="confirmBudget(${afterNeeds})">Confirm budget →</button>
-    </div>
-    <div class="remaining" style="margin-top:12px"><small>Whatever you don't allocate just stays as cash.</small></div>
-  </div>`;
-  screen().innerHTML = html;
-  onSlide(Math.floor(afterNeeds));
+  html+=`<button class="primary" onclick="confirmBudget(${afterNeeds})" style="margin-top:6px">Lock in budget →</button>
+    <div class="remaining"><small>Unallocated money just stays as cash (earns nothing).</small></div></div>`;
+  screen().innerHTML=html;
+  onSlide(max);
 }
 
-function sliders(){ return ["fun","save","bonds","stocks"].map(id=>document.getElementById("r-"+id)); }
-
-function onSlide(maxTotal){
-  const ids = ["fun","save","bonds","stocks"];
-  let total = 0;
-  ids.forEach(id=> total += +document.getElementById("r-"+id).value );
-  // if over budget, scale the just-moved set down? Simpler: cap by disabling overflow.
-  if (total > maxTotal){
-    // reduce proportionally is confusing; instead clamp each display and show warning
-  }
-  ids.forEach(id=> document.getElementById("num-"+id).textContent = money(+document.getElementById("r-"+id).value) );
-  const left = maxTotal - total;
-  const leftEl = document.getElementById("left");
-  if (leftEl){
-    leftEl.textContent = money(left);
-    leftEl.style.color = left < 0 ? "var(--red)" : "var(--text)";
-  }
+function preset(kind,max){
+  const set=(id,f)=>{ $("r-"+id).value=Math.floor(max*f/10)*10; };
+  if(kind==="balanced"){ set("fun",.25); set("save",.20); set("bonds",.20); set("stocks",.30); }
+  else if(kind==="save"){ set("fun",.15); set("save",.45); set("bonds",.25); set("stocks",.10); }
+  else if(kind==="invest"){ set("fun",.15); set("save",.10); set("bonds",.20); set("stocks",.50); }
+  else { ["fun","save","bonds","stocks"].forEach(id=>$("r-"+id).value=0); }
+  onSlide(max);
 }
-
-function autoBudget(maxTotal){
-  // balanced suggestion: 25% fun, 20% save, 20% bonds, 25% stocks (rest stays cash)
-  const set = (id,frac)=>{ document.getElementById("r-"+id).value = Math.floor(maxTotal*frac/10)*10; };
-  set("fun",0.25); set("save",0.20); set("bonds",0.20); set("stocks",0.25);
-  onSlide(maxTotal);
+function onSlide(max){
+  const ids=["fun","save","bonds","stocks"]; let total=0;
+  ids.forEach(id=>total+=+$("r-"+id).value);
+  ids.forEach(id=>$("num-"+id).textContent=money(+$("r-"+id).value));
+  const left=max-total; const le=$("left");
+  if(le){ le.textContent=money(left); le.style.color=left<0?"var(--red)":"var(--text)"; }
+  // allocation bar (as % of max)
+  const pct = v => max>0?Math.min(100,v/max*100):0;
+  ids.forEach(id=>{ $("ab-"+id).style.width=pct(+$("r-"+id).value)+"%"; });
+  $("ab-cash").style.width=Math.max(0,pct(left))+"%";
 }
 
 function confirmBudget(afterNeeds){
-  const get = id => +document.getElementById("r-"+id).value;
-  let fun=get("fun"), save=get("save"), bonds=get("bonds"), stocks=get("stocks");
-  const total = fun+save+bonds+stocks;
-  if (total > afterNeeds + 0.5){
-    alert("You've allocated more than you have. Bring it down to the amount left.");
-    return;
+  const g=id=>+$("r-"+id).value;
+  let fun=g("fun"),save=g("save"),bonds=g("bonds"),stocks=g("stocks");
+  if(fun+save+bonds+stocks > afterNeeds+0.5){ toast("⚠️ You allocated more than you have"); return; }
+  const ev=S.thisEvent; const eventCash=(ev&&ev.amt)?ev.amt:0;
+  S.cash = S.cash + S.thisIncome + eventCash - S.needs - (fun+save+bonds+stocks);
+  S.savings+=save; S.bonds+=bonds; S.stocks+=stocks;
+
+  // ---- happiness ----
+  let dH = -3;                                  // the grind of life
+  dH += 16*(1-Math.exp(-fun/420));              // fun: diminishing returns, ~max 16
+  if(S.savings < S.needs) dH -= 2;              // no buffer = stress
+  if(S.cash < 0) dH -= 5;                        // debt = real stress
+  S.happy = clamp(S.happy+dH, 0, 100);
+
+  // ---- lifestyle creep ----
+  const funRatio = S.thisIncome>0 ? fun/S.thisIncome : 0;
+  if(funRatio>0.5){
+    const before=S.needs; S.needs=Math.min(Math.round(S.needs*1.05), Math.round(S.baseNeeds*1.7));
+    if(S.needs>before) toast("📈 Lifestyle creep: your needs went up");
+  } else if(funRatio<0.2 && S.needs>S.baseNeeds){
+    S.needs=Math.max(Math.round(S.needs*0.98), S.baseNeeds);
   }
-  // Apply: pay needs, move money
-  const ev = S.thisEvent;
-  const eventCash = (ev && ev.amt) ? ev.amt : 0;
-  S.cash = S.cash + S.thisIncome + eventCash - S.needs;
-  S.cash -= total;
-  S.savings += save;
-  S.bonds += bonds;
-  S.stocks += stocks;
 
-  // happiness from fun spending
-  let dHappy = -2.5;                       // baseline grind of life
-  dHappy += Math.min(fun/55, 12);          // fun helps, with diminishing cap
-  S.happy = clamp(S.happy + dHappy, 0, 100);
-  S.log.unshift(`M${S.month}: budgeted ${money(fun)} fun / ${money(save)} save / ${money(bonds)} bonds / ${money(stocks)} stocks.`);
+  // badges
+  if(S.stocks+S.bonds>=10000) unlock("invested","Five-Figure Investor");
+  if(S.savings>=S.needs*3) unlock("prepared","Prepared (3-month fund)");
 
   goTemptation();
 }
 
-function resolveTightMonth(onHand){
-  // pay what we can from cash+income+event, then pull from savings, bonds, stocks
-  let deficit = S.needs - onHand;
+function resolveTight(onHand){
+  // onHand (cash + income + event) is less than needs. Cover the gap.
   S.cash = 0;
-  const pull = (field)=>{
-    if (deficit <= 0) return;
-    const take = Math.min(S[field], deficit);
-    S[field] -= take; deficit -= take;
-  };
-  pull("savings"); pull("bonds"); pull("stocks");
-  if (deficit > 0){ S.cash -= deficit; } // go into debt
-  S.happy = clamp(S.happy - 12, 0, 100);
-  S.log.unshift(`M${S.month}: tight month — drained reserves to cover needs.`);
+  let deficit = S.needs - onHand;
+  // 1) drain emergency fund first (no penalty — this is its job)
+  const fromSave = Math.min(S.savings, deficit);
+  S.savings -= fromSave; deficit -= fromSave;
+  // 2) panic-sell investments at a 5% loss
+  if(deficit > 0){
+    const sellable = S.stocks + S.bonds;
+    if(sellable > 0){
+      const take = Math.min(sellable, deficit/0.95); // gross sold to net `deficit`
+      const fs = S.stocks/sellable, fb = S.bonds/sellable;
+      S.stocks -= take*fs; S.bonds -= take*fb;
+      deficit -= take*0.95;
+    }
+  }
+  // 3) whatever's left becomes debt
+  if(deficit > 0) S.cash -= deficit;
+  S.happy = clamp(S.happy-12, 0, 100);
+  toast("😣 No buffer — you took a hit");
   goTemptation();
 }
 
-// PHASE 2: temptation
+// ============================ TEMPTATION ============================
 function goTemptation(){
   updateHUD();
-  // 70% chance a temptation appears
-  if (Math.random() > 0.70 || S.cash < 100){ return goMarket(); }
-  const t = rand(TEMPTATIONS);
-  S.pendingTempt = t;
-  const afford = S.cash >= t.cost;
-  let html = `<div class="card">
-    <h2>💳 Temptation!</h2>
-    <div class="sub">A little dopamine for a little money. Worth it... or invest the difference?</div>
-    <div class="event">${t.t}<br>
-      <span class="amt neg">-${money(t.cost)}</span> · happiness <span class="amt pos">+${t.joy}</span></div>
+  if(Math.random()>0.65 || S.cash<120) return goMarket();
+  const t=rand(TEMPTATIONS); S.tempt=t;
+  const afford=S.cash>=t.cost;
+  screen().innerHTML=`<div class="card"><h2>💳 Temptation!</h2>
+    <div class="sub">A little dopamine now... or let that money compound for future you?</div>
+    <div class="event">${t.t}<br><span class="amt neg">-${money(t.cost)}</span> · happiness <span class="amt pos">+${t.joy}</span></div>
     <div class="remaining">Your cash: <b>${money(S.cash)}</b></div>
     <div class="btn-row">
-      <button class="ghost" onclick="declineTempt()">No — keep my money</button>
-      <button class="primary" onclick="buyTempt()" ${afford?"":"disabled"}>${afford?"Treat myself 🛍️":"Can't afford it"}</button>
-    </div>
-  </div>`;
-  screen().innerHTML = html;
+      <button class="ghost" onclick="declineTempt()">Resist 🧘</button>
+      <button class="primary" onclick="buyTempt()" ${afford?"":"disabled"}>${afford?"Treat myself 🛍️":"Can't afford"}</button>
+    </div></div>`;
 }
+function buyTempt(){ const t=S.tempt; S.cash-=t.cost; S.happy=clamp(S.happy+t.joy,0,100); goMarket(); }
+function declineTempt(){ S.happy=clamp(S.happy-1,0,100); S.temptResisted++; if(S.temptResisted>=5) unlock("zen","Master of Restraint"); goMarket(); }
 
-function buyTempt(){
-  const t = S.pendingTempt;
-  S.cash -= t.cost;
-  S.happy = clamp(S.happy + t.joy, 0, 100);
-  S.log.unshift(`M${S.month}: splurged on ${t.t} (-${money(t.cost)}, +${t.joy} happy).`);
-  goMarket();
-}
-function declineTempt(){
-  S.happy = clamp(S.happy - 1.5, 0, 100); // small FOMO
-  S.log.unshift(`M${S.month}: resisted a temptation. Future self says thanks.`);
-  goMarket();
-}
-
-// PHASE 3: market
+// ============================ MARKET ============================
 function goMarket(){
   updateHUD();
-  const news = rand(NEWS);
-  S.pendingNews = news;
-  // add per-investor noise so two players with same news differ slightly
-  const stockNoise = (Math.random()-0.5)*0.03;
-  const stockRet = news.stock + stockNoise;
-  const bondRet = news.bond + (Math.random()-0.5)*0.001;
+  const news=rand(NEWS);
+  const stockRet=news.stock+(Math.random()-0.5)*0.03;
+  const bondRet=news.bond+(Math.random()-0.5)*0.001;
+  const sB=S.stocks,bB=S.bonds;
+  S.stocks=Math.max(0,S.stocks*(1+stockRet));
+  S.bonds=Math.max(0,S.bonds*(1+bondRet));
+  S.savings*=1.0015;
+  const dS=S.stocks-sB, dB=S.bonds-bB;
+  if(news.crash && sB>0) unlock("diamond","Diamond Hands (held a crash)");
 
-  const stockBefore = S.stocks, bondBefore = S.bonds, saveBefore = S.savings;
-  S.stocks = Math.max(0, S.stocks * (1 + stockRet));
-  S.bonds  = Math.max(0, S.bonds  * (1 + bondRet));
-  S.savings = S.savings * (1 + 0.0015); // emergency fund tiny interest
-
-  const dStock = S.stocks - stockBefore;
-  const dBond = S.bonds - bondBefore;
-
-  let html = `<div class="card">
-    <h2>📰 Market Report — Month ${S.month}</h2>
-    <div class="market-news">${news.t}</div>`;
-
-  if (stockBefore===0 && bondBefore===0){
-    html += `<div class="event">You have nothing invested yet, so the market doesn't move your money.
-      <br><small style="color:var(--muted)">Investing is how money grows while you sleep — consider putting some in next month.</small></div>`;
+  let body;
+  if(sB===0&&bB===0){
+    body=`<div class="event">You have nothing invested, so the market doesn't touch your money.<br><small style="color:var(--muted)">Investing is how money grows while you sleep — try putting some in next month.</small></div>`;
   } else {
-    html += `<div class="event">`;
-    if (bondBefore>0) html += `🛡️ Bonds: ${money(bondBefore)} → <b>${money(S.bonds)}</b> <span class="amt ${dBond>=0?'pos':'neg'}">(${dBond>=0?'+':''}${money(dBond)})</span><br>`;
-    if (stockBefore>0) html += `📈 Stocks: ${money(stockBefore)} → <b>${money(S.stocks)}</b> <span class="amt ${dStock>=0?'pos':'neg'}">(${dStock>=0?'+':''}${money(dStock)})</span><br>`;
-    html += `<small style="color:var(--muted)">Stocks moved ${(stockRet*100).toFixed(1)}% this month.</small></div>`;
+    body=`<div class="event">`;
+    if(bB>0) body+=`🛡️ Bonds: ${money(bB)} → <b>${money(S.bonds)}</b> <span class="amt ${dB>=0?'pos':'neg'}">(${dB>=0?'+':''}${money(dB)})</span><br>`;
+    if(sB>0) body+=`📈 Stocks: ${money(sB)} → <b>${money(S.stocks)}</b> <span class="amt ${dS>=0?'pos':'neg'}">(${dS>=0?'+':''}${money(dS)})</span><br>`;
+    body+=`<small style="color:var(--muted)">Stocks moved ${(stockRet*100).toFixed(1)}% this month.</small></div>`;
   }
-
-  html += `<div class="big-num">Net worth: ${money(netWorth())}</div>
-    <button class="primary" onclick="endMonth()">${S.month>=TOTAL_MONTHS?"See final results 🏁":"Next month →"}</button>
-  </div>`;
-  screen().innerHTML = html;
-  updateHUD();
+  S.history.push(Math.round(netWorth()));
+  screen().innerHTML=`<div class="card"><h2>📰 Market Report — Month ${S.month}</h2>
+    <div class="market-news">${news.t}</div>${body}
+    <canvas id="chart"></canvas>
+    <div class="big-num" id="nw-anim">${money(netWorth())}</div>
+    <div class="center sub" style="margin:-4px 0 12px">net worth</div>
+    <button class="primary" onclick="endMonth()">${S.month>=TOTAL_MONTHS?"See final results 🏁":"Next month →"}</button></div>`;
+  updateHUD(); drawChart();
+  if(dS>0 && sB>0) { /* subtle */ }
 }
 
 function endMonth(){
-  // burnout check
-  if (S.happy <= 0) return gameOver("burnout");
-  // deep-debt check
-  if (S.cash < -3000) return gameOver("debt");
-
-  if (S.month >= TOTAL_MONTHS) return showResults();
-  S.month++;
-  startMonth();
+  if(S.happy<=0) return gameOver("burnout");
+  if(S.cash<-3500) return gameOver("debt");
+  if(S.month>=TOTAL_MONTHS) return showResults();
+  S.month++; startMonth();
 }
 
-// ----- Endings -----------------------------------------------------------
+// ============================ MINIGAME: SIDE HUSTLE ============================
+function openHustle(){
+  S.opp=null;
+  let earned=0, time=9;
+  const ov=document.createElement("div"); ov.className="overlay"; ov.id="ov";
+  ov.innerHTML=`<div class="modal"><h3>🎯 Side Hustle</h3>
+    <div class="sub">Tap the cash before it vanishes! You keep everything you grab.</div>
+    <div class="mg-hud"><span>⏱️ <span id="mg-time">9</span>s</span><span>💰 <span id="mg-earn">$0</span></span></div>
+    <div id="playfield"></div></div>`;
+  document.body.appendChild(ov);
+  const field=$("playfield");
+  const timer=setInterval(()=>{ time--; $("mg-time").textContent=time; if(time<=0){ end(); } },1000);
+  const spawner=setInterval(spawn, 560);
+  function spawn(){
+    const coin=document.createElement("div"); coin.className="coin";
+    const val=40+Math.floor(Math.random()*5)*15; // 40..100
+    coin.textContent = val>=85?"💎":"💵";
+    coin.style.left=(8+Math.random()*78)+"%"; coin.style.top=(8+Math.random()*72)+"%";
+    coin.onclick=()=>{ earned+=val; $("mg-earn").textContent=money(earned); coin.textContent="✨"; coin.style.pointerEvents="none"; setTimeout(()=>coin.remove(),120); };
+    field.appendChild(coin);
+    setTimeout(()=>coin.remove(),1150);
+  }
+  function end(){
+    clearInterval(timer); clearInterval(spawner);
+    S.cash+=earned;
+    if(earned>0) unlock("hustler","Side Hustler");
+    field.parentElement.innerHTML=`<h3>Nice grind! 💪</h3><div class="sub">You earned</div><div class="big-num" style="color:var(--green)">${money(earned)}</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
+  }
+}
+
+// ============================ MINIGAME: DAY TRADE ============================
+function openTrade(){
+  S.opp=null;
+  const maxStake=Math.min(800,Math.max(0,S.cash));
+  const ov=document.createElement("div"); ov.className="overlay"; ov.id="ov";
+  ov.innerHTML=`<div class="modal"><h3>🎲 Day Trade</h3>
+    <div class="sub">Bet on the next market tick. Win pays <b>1.9×</b> — but it's basically a coin flip, so the odds quietly favor losing. (That's the lesson 😉)</div>
+    <div class="mg-hud"><span>Stake</span><span id="t-stake">$0</span></div>
+    <input type="range" min="0" max="${maxStake}" step="20" value="0" id="t-range" oninput="$('t-stake').textContent='$'+(+this.value).toLocaleString()" style="width:100%">
+    <div class="btn-row" style="margin-top:14px">
+      <button onclick="doTrade(true)">📈 Bet UP</button>
+      <button onclick="doTrade(false)">📉 Bet DOWN</button>
+    </div>
+    <button class="ghost" style="margin-top:8px" onclick="closeOv()">Walk away</button></div>`;
+  document.body.appendChild(ov);
+}
+function doTrade(betUp){
+  const stake=+$("t-range").value;
+  if(stake<=0){ toast("Pick a stake first"); return; }
+  const wentUp=Math.random()<0.47; // house edge
+  const win=(betUp===wentUp);
+  S.cash-=stake;
+  if(win){ S.cash+=Math.round(stake*1.9); unlock("roller","High Roller"); }
+  const modal=$("ov").querySelector(".modal");
+  modal.innerHTML=`<h3>${win?"📈 You won! 🎉":"📉 You lost"}</h3>
+    <div class="sub">Market went ${wentUp?"UP":"DOWN"}.</div>
+    <div class="big-num" style="color:${win?'var(--green)':'var(--red)'}">${win?"+"+money(stake*0.9):"-"+money(stake)}</div>
+    <button class="primary" onclick="closeOv()">Back to budget →</button>`;
+  if(win) confetti();
+}
+function closeOv(){ const o=$("ov"); if(o) o.remove(); renderBudget(); }
+
+// ============================ ENDINGS ============================
 function gameOver(reason){
-  let title = reason==="burnout" ? "😵 Burnout" : "💀 Drowning in debt";
-  let msg = reason==="burnout"
-    ? "Your happiness hit zero. All money and no joy made for a miserable run. Money is a tool, not the goal."
-    : "Your debt spiraled out of control. Cash flow — not net worth — is what sinks people first.";
-  screen().innerHTML = `<div class="card center">
-    <div class="grade">💔</div>
-    <h2>${title}</h2>
-    <div class="sub">${msg}</div>
-    <div class="pill">Made it to month ${S.month} of ${TOTAL_MONTHS}</div>
-    <div style="height:14px"></div>
-    <button class="primary" onclick="showStart()">Try again →</button>
-  </div>`;
+  const map={ burnout:["😵 Burnout","Your happiness hit zero. All money and no joy is a losing game — money is a tool, not the goal."],
+              debt:["💀 Buried in debt","Your debt spiraled out of control. Cash flow — not net worth — is what sinks people first."] };
+  const [title,msg]=map[reason];
+  screen().innerHTML=`<div class="card center"><div class="grade">💔</div><h2>${title}</h2>
+    <div class="sub">${msg}</div><div class="pill">Reached month ${S.month} of ${TOTAL_MONTHS}</div>
+    <div style="height:14px"></div><button class="primary" onclick="showStart()">Try again →</button></div>`;
 }
 
 function showResults(){
-  const nw = netWorth();
-  const h = S.happy;
-  // Score rewards BOTH wealth and happiness — the core trade-off.
-  const score = Math.round((nw) * (h/100));
-  let grade, blurb, emoji;
-  if (score > 22000){ grade="S"; emoji="🏆"; blurb="Financial wizard. Wealthy AND happy — the dream."; }
-  else if (score > 14000){ grade="A"; emoji="🌟"; blurb="Excellent balance of growth and life. Very strong run."; }
-  else if (score > 8000){ grade="B"; emoji="✅"; blurb="Solid. You built wealth without losing yourself."; }
-  else if (score > 3500){ grade="C"; emoji="🙂"; blurb="Decent. Room to invest more — or enjoy life more."; }
-  else if (score > 0){ grade="D"; emoji="😬"; blurb="You survived, but barely grew. Try investing earlier."; }
-  else { grade="F"; emoji="🥵"; blurb="Rough run. Next time, build an emergency fund first."; }
+  const nw=netWorth(), h=S.happy;
+  const score=Math.max(0, Math.round(nw*(h/100)));
+  let grade,emoji,blurb;
+  if(score>26000){grade="S";emoji="🏆";blurb="Financial wizard — wealthy AND happy. The dream run.";}
+  else if(score>16000){grade="A";emoji="🌟";blurb="Excellent balance of growth and life. Very strong.";}
+  else if(score>9000){grade="B";emoji="✅";blurb="Solid — you built wealth without losing yourself.";}
+  else if(score>4000){grade="C";emoji="🙂";blurb="Decent. Room to invest more — or enjoy life more.";}
+  else if(score>500){grade="D";emoji="😬";blurb="You survived, but barely grew. Invest earlier next time.";}
+  else {grade="F";emoji="🥵";blurb="Rough run — build an emergency fund and invest sooner.";}
 
-  const tips = [];
-  if (S.stocks + S.bonds < nw*0.25) tips.push("You kept most money in cash/savings — invested money compounds and grows much faster over time.");
-  if (h < 45) tips.push("Your happiness was low — all-out saving isn't 'winning' if you're miserable. Budget some fun.");
-  if (h > 85 && nw < 8000) tips.push("You enjoyed life but under-invested — a little discipline early goes a long way thanks to compounding.");
-  if (S.savings < S.needs) tips.push("Aim for an emergency fund of ~3 months of needs to absorb life's surprises.");
-  if (tips.length===0) tips.push("Great instincts — you balanced spending, saving, and investing well.");
+  const tips=[];
+  if(S.stocks+S.bonds < nw*0.25) tips.push("Most of your money sat in cash — invested money compounds and grows far faster.");
+  if(h<45) tips.push("Your happiness was low. All-out saving isn't 'winning' if you're miserable — budget some fun.");
+  if(h>85 && nw<9000) tips.push("You enjoyed life but under-invested. A little discipline early goes a long way thanks to compounding.");
+  if(S.savings<S.baseNeeds) tips.push("Aim for an emergency fund of ~3 months of needs to absorb life's surprises.");
+  if(S.needs>S.baseNeeds*1.2) tips.push("Lifestyle creep inflated your costs — raising your spending is easy, lowering it is hard.");
+  if(!tips.length) tips.push("Great instincts — you balanced spending, saving, and investing beautifully.");
 
-  screen().innerHTML = `<div class="card center">
+  if(grade==="S"||grade==="A") confetti();
+  const badges=[...S.badges].length ? `<div class="badges">${[...S.badges].map(b=>`<span class="badge">🏅 ${badgeName(b)}</span>`).join("")}</div>` : "";
+
+  screen().innerHTML=`<div class="card center">
     <div class="pill">${S.sit.name} · 24 months complete</div>
     <div class="grade" style="color:var(--gold)">${emoji} ${grade}</div>
-    <div class="big-num">Score: ${score.toLocaleString()}</div>
+    <div class="big-num" id="score-anim">0</div>
+    <div class="center sub" style="margin:-4px 0 8px">final score</div>
     <div class="sub">${blurb}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;text-align:left">
-      <div class="event">Final net worth<br><b style="font-size:18px">${money(nw)}</b></div>
-      <div class="event">Final happiness<br><b style="font-size:18px">${Math.round(h)}/100</b></div>
-      <div class="event">In the market<br><b>${money(S.stocks+S.bonds)}</b></div>
+    <canvas id="chart"></canvas>
+    <div class="stat-grid">
+      <div class="event">Net worth<br><b style="font-size:18px">${money(nw)}</b></div>
+      <div class="event">Happiness<br><b style="font-size:18px">${Math.round(h)}/100</b></div>
+      <div class="event">Invested<br><b>${money(S.stocks+S.bonds)}</b></div>
       <div class="event">Emergency fund<br><b>${money(S.savings)}</b></div>
     </div>
-    <div style="text-align:left">
-      <b>💡 Takeaways</b>
-      <ul class="tips">${tips.map(t=>`<li>${t}</li>`).join("")}</ul>
-    </div>
+    ${badges}
+    <div style="text-align:left"><b>💡 Takeaways</b><ul class="tips">${tips.map(t=>`<li>${t}</li>`).join("")}</ul></div>
     <div class="btn-row">
-      <button class="ghost" onclick="showStart()">New situation</button>
-      <button class="primary" onclick="newGame(S.sit)">Replay as ${S.sit.name.split(' ')[0]} ${S.sit.name.split(' ')[1]||''}</button>
-    </div>
-  </div>`;
-  updateHUD();
+      <button class="ghost" onclick="showStart()">New life</button>
+      <button class="primary" onclick="newGame(S.sit)">Replay →</button>
+    </div></div>`;
+  drawChart();
+  // animate score
+  const el=$("score-anim"); const t0=performance.now();
+  (function step(now){ const p=Math.min(1,(now-t0)/900); const e=1-Math.pow(1-p,3); el.textContent=Math.round(score*e).toLocaleString(); if(p<1)requestAnimationFrame(step); })(performance.now());
+}
+function badgeName(id){
+  return {invested:"Five-Figure Investor",prepared:"Prepared",zen:"Master of Restraint",diamond:"Diamond Hands",hustler:"Side Hustler",roller:"High Roller"}[id]||id;
 }
 
 // boot
 showStart();
+window.addEventListener("resize", ()=>{ if($("chart")) drawChart(); });
 </script>
 </body>
 </html>
