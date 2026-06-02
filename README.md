@@ -14,10 +14,16 @@ Each month folds three classic money lessons into one turn:
 
 ## Why it stays fun
 
-- **4 starting situations** (Student, Gig Worker, Young Professional, Single Parent) that play very differently.
-- **Random events, temptations, and market news** every month — no two runs are alike.
-- **Score = Net Worth × Happiness**, so hoarding every penny *or* blowing it all both lose. The skill is balance.
+- **6 starting lives** — 4 to start (Student, Gig Worker, Young Professional, Single Parent) plus **Entrepreneur** and **Retiree** you *unlock* by playing.
+- **Roguelike meta-progression** — earn achievements to unlock **perks** (Trust Fund, Frugal, Cool Head, Hustler's Edge, Insider, Optimist) you equip on future runs. Progress saves in your browser.
+- **Run goals** — each run rolls 3 random objectives for bonus score, nudging a different playstyle every time.
+- **Branching life dilemmas** — invest in a friend's startup, lend to family, buy insurance... real choices with risk and reward.
+- **Multi-asset investing** — split between 🛡️ Bonds, 🐢 Blue-Chip, 🎢 Crypto, and 🏠 Real Estate, each with its own risk/return personality.
+- **4 minigames** — Side Hustle, Coupon Dash, Day Trade, and Salary Negotiation.
+- **An AI advisor ("Penny")** reacts to your finances each month with a contextual tip.
+- **Score = Net Worth × Happiness (+ goal bonuses)**, so hoarding every penny *or* blowing it all both lose. The skill is balance.
 - Lose by **burning out** (happiness hits 0) or **drowning in debt** (cash flow, not net worth, sinks you first).
+- **Sound, charts, confetti, and animations** throughout — no assets or libraries, all synthesized in-browser.
 
 ## The finance concepts it teaches
 
