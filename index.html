@@ -30,6 +30,8 @@
   }
   header.app p { margin:3px 0 0; color:var(--muted); font-size:13px; }
   #mute { position:absolute; right:0; top:0; width:auto; padding:6px 10px; font-size:14px; background:var(--panel-2); }
+  #devlock { position:fixed; left:10px; bottom:12px; z-index:70; width:auto; padding:8px 10px; font-size:15px; border-radius:50%; opacity:.45; background:var(--panel-2); box-shadow:0 4px 14px rgba(0,0,0,.4); }
+  #devlock:hover { opacity:1; }
 
   .progress-wrap { margin:0 0 12px; display:none; }
   .progress-track { height:8px; background:var(--panel-2); border-radius:99px; overflow:hidden; border:1px solid var(--border); }
@@ -225,6 +227,7 @@
 </div>
 
 <div id="toasts"></div>
+<button id="devlock" onclick="devUnlock()" title="Unlock (passcode)">🔑</button>
 <canvas id="confetti"></canvas>
 
 <script>
@@ -476,6 +479,20 @@ function sfx(name){
   }
 }
 function toggleMute(){ muted=!muted; localStorage.setItem("moneypath_muted",muted?"1":"0"); $("mute").textContent=muted?"🔇":"🔊"; if(!muted){ audio(); sfx("click"); } }
+// dev/testing: unlock all perks, lives, avatars & themes with a passcode
+function devUnlock(){
+  const code=prompt("🔑 Enter passcode to unlock everything:");
+  if(code===null) return;
+  if(code.trim()==="6767"){
+    META.perks  = PERK_ORDER.filter(id=>id!=="none");
+    META.sits   = Object.keys(EXTRA_SITUATIONS);
+    META.avatars= AVATARS.map(a=>a.e);
+    META.themes = Object.keys(THEMES);
+    saveMeta(); sfx("win"); confetti(); toast("🔓 Everything unlocked — go test it all!");
+    const sh=$("screen").innerHTML;
+    if(sh.includes("Choose your life") || sh.includes("Pick a perk")) showStart();
+  } else { sfx("bad"); toast("❌ Wrong passcode"); }
+}
 $("mute").textContent = muted?"🔇":"🔊";
 document.addEventListener("click", ()=>{ const a=audio(); if(a&&a.state==="suspended") a.resume(); }, {once:false});
 
