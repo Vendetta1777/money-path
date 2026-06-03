@@ -148,6 +148,53 @@
   .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0; text-align:left; }
   .goal-result { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:13px; }
   .goal-result:last-child { border:none; }
+
+  /* player bar + avatar */
+  #playerbar { display:none; align-items:center; gap:10px; margin-bottom:10px; padding:8px 14px; background:linear-gradient(90deg,var(--panel),#121826); border:1px solid var(--border); border-radius:14px; }
+  .pb-avatar { font-size:26px; animation:bob 2.2s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-4px) rotate(2deg)} }
+  .pb-name { font-weight:800; font-size:15px; }
+  .pb-mood { margin-left:auto; font-size:22px; transition:transform .2s; }
+
+  /* floating numbers */
+  .floatnum { position:fixed; transform:translate(-50%,0); font-weight:900; font-size:18px; pointer-events:none; z-index:85; animation:floatup 1.1s ease-out forwards; text-shadow:0 2px 8px rgba(0,0,0,.6); }
+  .floatnum.pos { color:var(--green); } .floatnum.neg { color:var(--red); }
+  @keyframes floatup { 0%{opacity:0; transform:translate(-50%,4px) scale(.8)} 20%{opacity:1; transform:translate(-50%,-6px) scale(1.1)} 100%{opacity:0; transform:translate(-50%,-44px) scale(1)} }
+
+  /* customization */
+  .avatar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin:6px 0 4px; }
+  .av { font-size:24px; padding:8px 0; text-align:center; border:1px solid var(--border); border-radius:10px; background:var(--panel-2); cursor:pointer; transition:.12s; position:relative; }
+  .av:hover { transform:translateY(-2px); border-color:var(--accent); }
+  .av.sel { border-color:var(--accent2); box-shadow:0 0 0 2px rgba(0,212,255,.35) inset; }
+  .av.locked { opacity:.32; cursor:not-allowed; filter:grayscale(1); }
+  .av.locked::after { content:"🔒"; position:absolute; bottom:-2px; right:-2px; font-size:11px; }
+  .name-input { width:100%; padding:11px 14px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); font:inherit; font-weight:700; margin-bottom:8px; }
+  .name-input:focus { outline:none; border-color:var(--accent2); }
+  .theme-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .th { flex:1 1 calc(33% - 8px); min-width:96px; padding:9px; border-radius:10px; border:1px solid var(--border); cursor:pointer; font-size:12px; font-weight:700; text-align:center; transition:.12s; }
+  .th.sel { box-shadow:0 0 0 2px rgba(0,212,255,.35) inset; }
+  .th.locked { opacity:.4; cursor:not-allowed; }
+  .th .sw { display:inline-block; width:34px; height:8px; border-radius:99px; margin-bottom:4px; }
+
+  /* life-story recap */
+  .story { background:linear-gradient(180deg,#1a1f2e,#10141f); border:1px solid var(--accent); border-radius:16px; padding:18px; margin:14px 0; text-align:left; }
+  .story h3 { margin:0 0 4px; font-size:17px; }
+  .story .line { font-size:13.5px; line-height:1.7; color:var(--text); }
+  .story .line .hl { color:var(--accent2); font-weight:800; }
+  .story .stamp { display:inline-block; margin-top:8px; font-size:11px; color:var(--muted); }
+
+  /* phone polish (teens play on mobile) */
+  @media (max-width:440px){
+    body { padding:10px; }
+    header.app h1 { font-size:28px; }
+    .card { padding:16px; border-radius:14px; }
+    .hud { padding:10px 8px; gap:4px; }
+    .hud .stat .value { font-size:16px; }
+    .avatar-grid { grid-template-columns:repeat(7,1fr); gap:5px; }
+    .av { font-size:20px; padding:6px 0; }
+    .preset-row button { font-size:11px; padding:7px 6px; }
+    .perk { flex:1 1 calc(50% - 8px); }
+  }
 </style>
 </head>
 <body>
@@ -159,6 +206,12 @@
   </header>
 
   <div id="progress" class="progress-wrap"><div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div></div>
+
+  <div id="playerbar" style="display:none">
+    <span id="pb-avatar" class="pb-avatar">🧑</span>
+    <span id="pb-name" class="pb-name">Player</span>
+    <span id="pb-mood" class="pb-mood">😄</span>
+  </div>
 
   <div id="hud" class="hud" style="display:none">
     <div class="stat"><div class="label">Month</div><div class="value" id="hud-month">1/24</div></div>
@@ -239,6 +292,15 @@ const EVENTS = [
   { t:"🐶 Vet bill for your pet.", amt:-350, kind:"bad" },
   { t:"📦 Sold some old stuff online.", amt:250, kind:"good" },
   { t:"🅿️ Parking ticket. Ouch.", amt:-110, kind:"bad" },
+  // teen-flavored life
+  { t:"👟 You flipped a pair of hyped sneakers for a profit.", amt:280, kind:"good" },
+  { t:"🎮 Your gaming setup needs a new part.", amt:-240, kind:"bad" },
+  { t:"📸 A post blew up — a brand sent you a small sponsorship.", amt:400, kind:"good" },
+  { t:"🎤 Festival tickets with friends — you couldn't say no.", amt:-300, kind:"bad" },
+  { t:"💸 Grandma slipped you some birthday cash.", amt:200, kind:"good" },
+  { t:"🛹 Snapped your board / cracked your screen again.", amt:-180, kind:"bad" },
+  { t:"☕ You picked up extra shifts at the cafe.", amt:350, kind:"good" },
+  { t:"🚗 First car needs new tires.", amt:-420, kind:"bad" },
 ];
 const RAISE_EVENT = { t:"📈 You earned a permanent raise! Monthly income goes up.", raise:400, kind:"good" };
 const CUT_EVENT = { t:"✂️ Your hours got cut. Income drops for a few months.", cut:500, months:3, kind:"bad" };
@@ -278,17 +340,41 @@ const DILEMMAS = [
       { label:"Buy insurance (+$120 to needs)", run:()=>{ S.needs+=120; S.insured=true; return ok("Peace of mind — big bad events will hit softer.",2);} },
       { label:"Self-insure (decline)", run:()=>ok("You bet on staying lucky.",0) },
     ]},
+  { t:"📹 You could spend $600 on gear to start a content channel.",
+    choices:[
+      { label:"Go for it ($600)", run:()=>{ if(S.cash<600) return fail("Not enough cash."); S.cash-=600; if(Math.random()<0.45){ S.income+=250; return ok("It's growing — small steady income (+$250/mo)!",8);} return ok("Fun hobby, but no income yet.",2);} },
+      { label:"Start free with your phone", run:()=>ok("Smart — you create with what you have. No cost.",1) },
+    ]},
+  { t:"👟 A friend offers you 5 hyped sneaker pairs to resell for $1,000 up front.",
+    choices:[
+      { label:"Buy the inventory ($1,000)", run:()=>{ if(S.cash<1000) return fail("Not enough cash."); S.cash-=1000; if(Math.random()<0.6){ const w=1400+Math.random()*900; S.cash+=Math.round(w); return ok(`Sold out! You made ${money(w)}.`,7);} return ok("Hype died — you barely broke even.",-3);} },
+      { label:"Pass on the flip", run:()=>ok("No risk taken. The money stays put.",0) },
+    ]},
+  { t:"🚗 Your friends want to split a road trip — your share is $500.",
+    choices:[
+      { label:"Send it ($500)", run:()=>{ if(S.cash<500) return fail("Not enough cash."); S.cash-=500; return ok("Unforgettable memories with the crew.",12);} },
+      { label:"Sit this one out", run:()=>ok("You save the cash, but feel the FOMO.",-5) },
+    ]},
+  { t:"💼 A summer internship pays less but could level up your future.",
+    choices:[
+      { label:"Take the low-pay internship", run:()=>{ S.income=Math.max(0,S.income-150); if(Math.random()<0.7){ S.income+=550; return ok("Tough at first, but it led to a better role (+$550/mo)!",6);} return ok("Great experience, even if it hasn't paid off yet.",2);} },
+      { label:"Take the higher-paying gig", run:()=>{ S.income+=250; return ok("More money now (+$250/mo). The safe play.",2);} },
+    ]},
 ];
 
 const TEMPTATIONS = [
   { t:"🎮 The latest gaming console", cost:550, joy:13 },
   { t:"📱 A brand-new flagship phone", cost:850, joy:15 },
-  { t:"✈️ A spontaneous weekend getaway", cost:520, joy:18 },
+  { t:"✈️ A spontaneous trip with the crew", cost:520, joy:18 },
   { t:"🎧 Premium noise-cancelling headphones", cost:320, joy:10 },
   { t:"🧥 That designer jacket you saw", cost:400, joy:9 },
   { t:"🎟️ Front-row concert tickets", cost:280, joy:12 },
-  { t:"⌚ A nice watch", cost:600, joy:11 },
+  { t:"👟 Limited-edition sneaker drop", cost:450, joy:13 },
   { t:"🚲 A fancy new bike", cost:700, joy:14 },
+  { t:"🍔 Treating the whole group to food", cost:160, joy:8 },
+  { t:"🎉 An all-out birthday party", cost:600, joy:16 },
+  { t:"⌚ A smartwatch everyone has", cost:500, joy:11 },
+  { t:"🎨 A pro tablet for your art/content", cost:620, joy:12 },
 ];
 
 const NEWS = [
@@ -316,16 +402,49 @@ const GOAL_POOL = [
   { id:"diversify",d:"Own 3+ asset types at the end",bonus:2500, check:()=>ASSETS.filter(a=>S.holdings[a.id]>0).length>=3 },
 ];
 
+// ============================ COSMETICS ============================
+// avatars: default ones always available; others unlock via meta progress
+const AVATARS = [
+  { e:"🧑", lock:null }, { e:"👦", lock:null }, { e:"👧", lock:null }, { e:"🧒", lock:null },
+  { e:"😎", lock:null }, { e:"🤓", lock:null }, { e:"🦊", lock:null }, { e:"🐱", lock:null },
+  { e:"🤖", lock:"invested",  hint:"Reach $10k invested" },
+  { e:"👽", lock:"roller",    hint:"Win a day trade" },
+  { e:"🦄", lock:"gradeA",    hint:"Finish with an A+" },
+  { e:"🐉", lock:"gradeS",    hint:"Finish with an S" },
+  { e:"👑", lock:"best25k",   hint:"Score 25,000+" },
+  { e:"🔥", lock:"best15k",   hint:"Score 15,000+" },
+];
+const THEMES = {
+  midnight: { name:"Midnight", a:"#8b6bff", b:"#00d4ff", lock:null },
+  mint:     { name:"Mint",     a:"#3fdd7a", b:"#00d4ff", lock:"prepared", hint:"Earn 'Prepared'" },
+  sunset:   { name:"Sunset",   a:"#ff6b6b", b:"#ffb24a", lock:"finish",   hint:"Finish any run" },
+  vapor:    { name:"Vaporwave",a:"#ff5cf4", b:"#5af0ff", lock:"gradeA",   hint:"Finish with an A+" },
+  goldrush: { name:"Gold Rush",a:"#ffd24a", b:"#ff9d3c", lock:"best20k",  hint:"Score 20,000+" },
+};
+function applyTheme(id){
+  const t=THEMES[id]||THEMES.midnight;
+  document.documentElement.style.setProperty("--accent", t.a);
+  document.documentElement.style.setProperty("--accent2", t.b);
+}
+
 // ============================ META (localStorage) ============================
 const META_KEY = "moneypath_meta_v1";
 let META;
 function loadMeta(){
   let m={}; try{ m=JSON.parse(localStorage.getItem(META_KEY))||{}; }catch(e){}
   m.perks=m.perks||[]; m.sits=m.sits||[]; m.badges=m.badges||[]; m.best=m.best||0;
+  m.name=m.name||""; m.avatar=m.avatar||"🧑"; m.theme=m.theme||"midnight";
+  m.avatars=m.avatars||[]; m.themes=m.themes||[]; m.runs=m.runs||0;
   return m;
 }
 function saveMeta(){ try{ localStorage.setItem(META_KEY, JSON.stringify(META)); }catch(e){} }
 META = loadMeta();
+function avatarUnlocked(av){
+  if(!av.lock) return true;
+  if(META.avatars.includes(av.e)) return true;
+  return false;
+}
+function themeUnlocked(id){ const t=THEMES[id]; if(!t.lock) return true; return META.themes.includes(id); }
 
 // ============================ HELPERS ============================
 let S = null; // the entire game state for the current run
@@ -338,7 +457,7 @@ const invested = () => ASSETS.reduce((s,a)=>s+S.holdings[a.id],0);
 const netWorth = () => S.cash + S.savings + invested();
 const effNeeds = () => Math.max(0, S.needs - S.discount);
 function sampleGoals(){ const p=[...GOAL_POOL]; const out=[]; for(let i=0;i<3;i++){ out.push(p.splice(Math.floor(Math.random()*p.length),1)[0]); } return out; }
-function markDebt(){ if(S.cash<0) S.everDebt=true; }
+function markDebt(){ if(S.cash<0){ S.everDebt=true; if(S.story && !S.story.brokeMonth) S.story.brokeMonth=S.month; } }
 
 // ============================ SOUND ============================
 let actx=null, muted=(localStorage.getItem("moneypath_muted")==="1");
@@ -361,14 +480,26 @@ $("mute").textContent = muted?"🔇":"🔊";
 document.addEventListener("click", ()=>{ const a=audio(); if(a&&a.state==="suspended") a.resume(); }, {once:false});
 
 // ============================ HUD / CHART ============================
+function moodFace(h){ return h>=80?"😄":h>=62?"🙂":h>=45?"😐":h>=28?"😟":"😫"; }
 function updateHUD(){
-  $("hud").style.display="grid"; $("progress").style.display="block";
+  $("hud").style.display="grid"; $("progress").style.display="block"; $("playerbar").style.display="flex";
+  $("pb-avatar").textContent = S.avatar; $("pb-name").textContent = S.name;
+  $("pb-mood").textContent = moodFace(S.happy);
   $("hud-month").textContent = S.month+"/"+TOTAL_MONTHS;
   animateNum($("hud-net"), netWorth(), true);
   animateNum($("hud-cash"), S.cash, true);
   $("hud-happy").textContent = Math.round(S.happy);
   $("hud-happy-bar").style.width = clamp(S.happy,0,100)+"%";
   $("progress-fill").style.width = ((S.month-1)/TOTAL_MONTHS*100)+"%";
+}
+// floating "+$X / -$X" juice near the net-worth stat
+function popFloat(text, positive){
+  const anchor=$("hud-net"); if(!anchor) return;
+  const r=anchor.getBoundingClientRect();
+  const el=document.createElement("div"); el.className="floatnum "+(positive?"pos":"neg"); el.textContent=text;
+  el.style.left=(r.left+r.width/2)+"px"; el.style.top=(r.top-4)+"px";
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1100);
 }
 function animateNum(el,target,isMoney){
   const start=parseFloat(el.dataset.v||"0"), t0=performance.now(), dur=550;
@@ -403,11 +534,17 @@ function confetti(){
   const P=Array.from({length:140},()=>({x:Math.random()*innerWidth,y:-20-Math.random()*200,vx:(Math.random()-.5)*4,vy:2+Math.random()*4,s:5+Math.random()*7,c:rand(cols),r:Math.random()*6,vr:(Math.random()-.5)*.4}));
   let f=0; (function anim(){ x.clearRect(0,0,innerWidth,innerHeight); f++; P.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.08; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); x.restore(); }); if(f<150) requestAnimationFrame(anim); else x.clearRect(0,0,innerWidth,innerHeight); })();
 }
+function moneyRain(){
+  const c=$("confetti"), dpr=window.devicePixelRatio||1; c.width=innerWidth*dpr; c.height=innerHeight*dpr;
+  const x=c.getContext("2d"); x.scale(dpr,dpr); const emo=["💵","💰","🤑","💎","🪙"];
+  const P=Array.from({length:60},()=>({x:Math.random()*innerWidth,y:-30-Math.random()*300,vy:3+Math.random()*5,s:20+Math.random()*16,e:rand(emo),r:(Math.random()-.5)*.5,vr:(Math.random()-.5)*.1}));
+  let f=0; (function anim(){ x.clearRect(0,0,innerWidth,innerHeight); f++; x.textAlign="center"; x.textBaseline="middle"; P.forEach(p=>{ p.y+=p.vy; p.r+=p.vr; x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.font=p.s+"px serif"; x.fillText(p.e,0,0); x.restore(); }); if(f<200) requestAnimationFrame(anim); else x.clearRect(0,0,innerWidth,innerHeight); })();
+}
 
 // ============================ START SCREEN ============================
 let selectedPerk = "none";
 function showStart(){
-  $("hud").style.display="none"; $("progress").style.display="none";
+  $("hud").style.display="none"; $("progress").style.display="none"; $("playerbar").style.display="none";
   const allSits = SITUATIONS.concat(META.sits.map(id=>EXTRA_SITUATIONS[id]).filter(Boolean));
 
   // perk picker
@@ -442,8 +579,33 @@ function showStart(){
 
   const bestLine = META.best>0 ? `<div class="pill" style="margin-bottom:10px">🏆 Best score: ${META.best.toLocaleString()}</div>` : "";
 
-  screen().innerHTML = `<div class="card">
+  // customization: avatar grid, name, theme
+  let avHtml = `<div class="avatar-grid">`;
+  AVATARS.forEach((av,i)=>{
+    const un=avatarUnlocked(av); const sel=META.avatar===av.e?" sel":""; const lk=un?"":" locked";
+    const oc=un?`onclick="pickAvatar('${av.e}')"`:`title="${av.hint||''}"`;
+    avHtml += `<div class="av${sel}${lk}" ${oc}>${av.e}</div>`;
+  });
+  avHtml += `</div>`;
+  let thHtml = `<div class="theme-row">`;
+  Object.keys(THEMES).forEach(id=>{
+    const t=THEMES[id]; const un=themeUnlocked(id); const sel=META.theme===id?" sel":""; const lk=un?"":" locked";
+    const oc=un?`onclick="pickTheme('${id}')"`:`title="${t.hint||''}"`;
+    thHtml += `<div class="th${sel}${lk}" ${oc} style="${sel?`border-color:${t.a}`:''}"><span class="sw" style="background:linear-gradient(90deg,${t.a},${t.b})"></span><br>${un?t.name:"🔒 "+t.name}</div>`;
+  });
+  thHtml += `</div>`;
+  const customizeHtml = `<div class="card">
       ${bestLine}
+      <h2>You</h2>
+      <div class="sub">Make it yours — unlock more avatars & themes by playing.</div>
+      <input class="name-input" id="name-input" maxlength="14" placeholder="Your name" value="${(META.name||'').replace(/"/g,'&quot;')}" oninput="setName(this.value)">
+      ${avHtml}
+      <div class="subhead">Theme</div>
+      ${thHtml}
+    </div>`;
+
+  screen().innerHTML = `${customizeHtml}
+    <div class="card">
       <h2>Pick a perk</h2>
       <div class="sub">Unlock more by earning achievements. Choose one for this run.</div>
       ${perkHtml}
@@ -459,8 +621,12 @@ function showStart(){
     </div>`;
 }
 function pickPerk(id){ selectedPerk=id; sfx("click"); showStart(); }
+function pickAvatar(e){ META.avatar=e; saveMeta(); sfx("coin"); showStart(); }
+function pickTheme(id){ META.theme=id; saveMeta(); applyTheme(id); sfx("coin"); showStart(); }
+function setName(v){ META.name=v.slice(0,14); saveMeta(); }
 function startRun(sitId){
   const sit = SITUATIONS.find(s=>s.id===sitId) || EXTRA_SITUATIONS[sitId];
+  if(!META.name || !META.name.trim()){ META.name="Player"; saveMeta(); }
   sfx("confirm"); newGame(sit, selectedPerk);
 }
 
@@ -477,6 +643,9 @@ function newGame(sit, perkId){
     temptResisted:0, hustleEarned:0, everDebt:false, insured:false,
     goals:sampleGoals(),
     optimist:false, coolhead:false, hustleEdge:false, insider:false,
+    name:(META.name&&META.name.trim())||"Player", avatar:META.avatar||"🧑",
+    // life-story trackers
+    story:{ bought:0, bestGain:0, bestMonth:0, worstLoss:0, worstMonth:0, crashes:0, raises:0, gigs:0, dilemmas:0, brokeMonth:0 },
   };
   if(perkId==="trustfund") S.cash+=2500;
   if(perkId==="frugal"){ S.baseNeeds=Math.round(sit.needs*0.88); S.needs=S.baseNeeds; }
@@ -502,7 +671,7 @@ function startMonth(){
   if(Math.random()<0.28){ return showDilemma(rand(DILEMMAS)); }
   if(Math.random()<0.55){
     const r=Math.random();
-    if(r<0.10){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; }
+    if(r<0.10){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; if(S.story)S.story.raises++; }
     else if(r<0.18 && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
     else S.thisEvent={...rand(EVENTS)};
   }
@@ -529,6 +698,7 @@ function chooseDilemma(i){
   const res=_dilemma.choices[i].run();
   if(res.fail){ toast("⚠️ "+res.msg); sfx("bad"); return; }
   S.happy=clamp(S.happy+(res.happy||0),0,100);
+  if(S.story)S.story.dilemmas++;
   markDebt();
   sfx(res.happy>0?"coin":"click");
   // proceed to a normal opportunity roll then budget
@@ -707,7 +877,7 @@ function goTemptation(){
     <div class="btn-row"><button class="ghost" onclick="declineTempt()">Resist 🧘</button>
     <button class="primary" onclick="buyTempt()" ${afford?"":"disabled"}>${afford?"Treat myself 🛍️":"Can't afford"}</button></div></div>`;
 }
-function buyTempt(){ const t=S.tempt; S.cash-=t.cost; S.happy=clamp(S.happy+t.joy,0,100); sfx("coin"); markDebt(); goMarket(); }
+function buyTempt(){ const t=S.tempt; S.cash-=t.cost; S.happy=clamp(S.happy+t.joy,0,100); if(S.story)S.story.bought++; sfx("coin"); markDebt(); goMarket(); }
 function declineTempt(){ S.happy=clamp(S.happy-1,0,100); S.temptResisted++; sfx("click"); if(S.temptResisted>=5) unlock("zen","Master of Restraint"); goMarket(); }
 
 // ============================ MARKET ============================
@@ -718,7 +888,10 @@ function goMarket(){
   ASSETS.forEach(a=>{ const ret=news.stock*a.mult+a.base+(Math.random()-0.5)*2*a.noise*nz; S.holdings[a.id]=Math.max(0,S.holdings[a.id]*(1+ret)); });
   S.savings*=1.0015;
   const riskyBefore=before.bluechip+before.crypto+before.realestate;
-  if(news.crash && riskyBefore>0) unlock("diamond","Diamond Hands (held a crash)");
+  if(news.crash && riskyBefore>0){ unlock("diamond","Diamond Hands (held a crash)"); if(S.story)S.story.crashes++; }
+  // story: best/worst single-month investment swing
+  const invDelta = ASSETS.reduce((s,a)=>s+(S.holdings[a.id]-before[a.id]),0);
+  if(S.story){ if(invDelta>S.story.bestGain){ S.story.bestGain=invDelta; S.story.bestMonth=S.month; } if(invDelta<S.story.worstLoss){ S.story.worstLoss=invDelta; S.story.worstMonth=S.month; } }
 
   let body;
   if(invested()===0 && riskyBefore===0 && before.bonds===0){
@@ -731,6 +904,7 @@ function goMarket(){
   S.history.push(Math.round(netWorth()));
   const last=S.history[S.history.length-1], prev=S.history[S.history.length-2]||last;
   if(last>=prev) sfx("coin"); else sfx("bad");
+  if(Math.abs(invDelta)>=20) popFloat((invDelta>=0?"+":"")+money(invDelta), invDelta>=0);
 
   screen().innerHTML=`<div class="card"><h2>📰 Market Report — Month ${S.month}</h2>
     <div class="market-news">${news.t}</div>${body}
@@ -754,7 +928,7 @@ function closeOv(){ const o=$("ov"); if(o) o.remove(); renderBudget(); }
 
 // Side Hustle — tap cash, dodge bombs (fast & punishing)
 function openHustle(){
-  S.opp=null; sfx("click"); let earned=0,time=7;
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++; let earned=0,time=7;
   openOverlay(`<h3>🎯 Side Hustle</h3><div class="sub">Tap 💵 fast — they vanish quickly! Avoid 💣 bombs (they cost you $90).</div>
     <div class="mg-hud"><span>⏱️ <span id="mg-time">7</span>s</span><span>💰 <span id="mg-earn">$0</span></span></div>
     <div id="playfield"></div>`);
@@ -780,7 +954,7 @@ function openHustle(){
 }
 // Coupon Dash — grab coupons, dodge scams
 function openCoupon(){
-  S.opp=null; sfx("click"); let saved=0,time=7; const cap=Math.round(400*mgMult());
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++; let saved=0,time=7; const cap=Math.round(400*mgMult());
   openOverlay(`<h3>🏷️ Coupon Dash</h3><div class="sub">Tap 🏷️ coupons to cut this month's bills (up to ${money(cap)}). Avoid 🚫 scams — they shrink your savings!</div>
     <div class="mg-hud"><span>⏱️ <span id="mg-time">7</span>s</span><span>✂️ <span id="mg-save">$0</span> off</span></div>
     <div id="playfield"></div>`);
@@ -806,7 +980,7 @@ function openCoupon(){
 }
 // Day Trade — risky bet
 function openTrade(){
-  S.opp=null; sfx("click"); const maxStake=Math.min(800,Math.max(0,Math.floor(S.cash)));
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++; const maxStake=Math.min(800,Math.max(0,Math.floor(S.cash)));
   openOverlay(`<h3>🎲 Day Trade</h3><div class="sub">Bet on the next tick. Win pays <b>1.9×</b>, but it's a coin flip — the odds quietly favor losing. (That's the lesson 😉)${S.insider?"<br><b style='color:var(--accent2)'>Insider perk: fair 50/50 odds.</b>":""}</div>
     <div class="mg-hud"><span>Stake</span><span id="t-stake">$0</span></div>
     <input type="range" min="0" max="${maxStake}" step="20" value="0" id="t-range" oninput="$('t-stake').textContent=money(+this.value)" style="width:100%">
@@ -827,7 +1001,7 @@ function doTrade(betUp){
 // Salary Negotiation — 3 rounds, shrinking zone, faster marker
 let _nego=null;
 function openNegotiate(){
-  S.opp=null; sfx("click");
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++;
   _nego={ round:0, total:0, raf:null, pos:0, dir:1, rounds:[{w:22,speed:1.7},{w:15,speed:2.3},{w:10,speed:2.9}] };
   openOverlay(`<h3>🤝 Salary Negotiation</h3><div class="sub">Three rounds — stop the marker in the green zone each time. It shrinks and speeds up. Clear all three for the biggest raise!</div>
     <div class="mg-hud"><span>Round <span id="ng-round">1</span>/3</span><span>📈 <span id="ng-raise">+$0</span>/mo</span></div>
@@ -859,14 +1033,14 @@ function negoStop(){
 function negoBail(){ if(_nego.raf) cancelAnimationFrame(_nego.raf); negoFinish(null); }
 function negoFinish(perfect){
   if(_nego.raf) cancelAnimationFrame(_nego.raf);
-  const raise=_nego.total; if(raise>0){ S.income+=raise; unlock("negotiator","Smooth Talker"); }
+  const raise=_nego.total; if(raise>0){ S.income+=raise; unlock("negotiator","Smooth Talker"); if(S.story)S.story.raises++; }
   if(perfect===true){ confetti(); sfx("win"); } else if(raise>0){ sfx("confirm"); } else { sfx("bad"); S.happy=clamp(S.happy-2,0,100); }
   const head = perfect===true?"🎉 Flawless negotiation!" : raise>0?"🤝 Deal closed" : "😬 Negotiation fell apart";
   $("ov").querySelector(".modal").innerHTML=`<h3>${head}</h3><div class="sub">Permanent raise</div><div class="big-num" style="color:${raise>0?'var(--green)':'var(--red)'}">+${money(raise)}/mo</div><button class="primary" onclick="closeOv()">Back to budget →</button>`;
 }
 // Market Pattern — Simon-style memory, gets longer each round
 function openMemory(){
-  S.opp=null; sfx("click");
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++;
   const ICONS=["🛡️","🐢","🎢","🏠"];
   let seq=[], round=0, earned=0, accepting=false, input=[];
   openOverlay(`<h3>🧠 Market Pattern</h3><div class="sub">Watch the sequence, then repeat it. Each round adds one more — a single slip ends it, so bank what you can!</div>
@@ -908,7 +1082,7 @@ function openMemory(){
 }
 // Budget Blitz — quick finance math under a timer
 function openBlitz(){
-  S.opp=null; sfx("click");
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++;
   const Q=[]; for(let i=0;i<4;i++) Q.push(genQ());
   function genQ(){
     const type=Math.floor(Math.random()*3); let text,ans;
@@ -957,6 +1131,27 @@ function gameOver(reason){
     <div style="height:14px"></div><button class="primary" onclick="showStart()">Try again →</button></div>`;
 }
 
+// build a shareable, screenshot-worthy life-story recap
+function buildStory(grade){
+  const st=S.story||{bought:0,gigs:0,raises:0,crashes:0,bestGain:0,worstLoss:0,bestMonth:0,worstMonth:0,brokeMonth:0};
+  const role=S.sit.name.replace(/^\S+\s/,"");
+  const L=[];
+  L.push(`<span class="hl">${S.avatar} ${S.name}</span> spent 24 months living as a ${role}.`);
+  if(st.bought>=6) L.push(`You gave in to <span class="hl">${st.bought}</span> temptations — hey, life's for living.`);
+  else if(st.bought===0 && S.temptResisted>0) L.push(`You resisted <span class="hl">every single</span> temptation. Iron will. 🧘`);
+  else L.push(`You treated yourself <span class="hl">${st.bought}</span> time${st.bought===1?'':'s'} and resisted <span class="hl">${S.temptResisted}</span>.`);
+  if(st.gigs>0) L.push(`You grinded <span class="hl">${st.gigs}</span> side gig${st.gigs===1?'':'s'}, pocketing <span class="hl">${money(S.hustleEarned)}</span>.`);
+  if(st.raises>0) L.push(`You landed <span class="hl">${st.raises}</span> raise${st.raises===1?'':'s'} along the way. 📈`);
+  if(st.crashes>0) L.push(`You held your nerve through <span class="hl">${st.crashes}</span> market crash${st.crashes===1?'':'es'}. 💎`);
+  if(st.bestGain>=50) L.push(`Best month: the market handed you <span class="hl">+${money(st.bestGain)}</span> (month ${st.bestMonth}).`);
+  if(st.worstLoss<=-50) L.push(`Worst month: you watched <span class="hl">${money(st.worstLoss)}</span> vanish (month ${st.worstMonth}). 😬`);
+  if(st.brokeMonth) L.push(`You slipped into debt around month <span class="hl">${st.brokeMonth}</span> — but kept fighting.`);
+  const mood=S.happy>=75?"genuinely happy":S.happy>=50?"doing just fine":S.happy>=30?"a little burnt out":"running on empty";
+  L.push(`You finished with <span class="hl">${money(netWorth())}</span> to your name, ${mood}.`);
+  L.push(`<b>${ {S:"A legendary run. 🏆",A:"An amazing run. 🌟",B:"A solid run. ✅",C:"A decent run. 🙂",D:"A bumpy run. 😬",F:"A run to learn from. 🥵"}[grade] }</b>`);
+  return L;
+}
+
 function showResults(){
   const nw=netWorth(), h=S.happy;
   const base=Math.max(0,Math.round(nw*(h/100)));
@@ -984,14 +1179,16 @@ function showResults(){
   if(ASSETS.filter(a=>S.holdings[a.id]>0).length<=1 && invested()>0) tips.push("You concentrated in one asset — diversifying spreads your risk.");
   if(!tips.length) tips.push("Great instincts — you balanced spending, saving, and investing beautifully.");
 
-  if(grade==="S"||grade==="A"){ confetti(); sfx("win"); } else sfx("confirm");
+  if(grade==="S"||grade==="A"){ confetti(); moneyRain(); sfx("win"); } else sfx("confirm");
 
+  const storyLines=buildStory(grade);
+  const storyHtml=`<div class="story"><h3>📖 ${S.name}'s Money Story</h3>${storyLines.map(l=>`<div class="line">${l}</div>`).join("")}<div class="stamp">Money Path · ${S.sit.name} · Score ${score.toLocaleString()} · Grade ${grade}</div></div>`;
   const badges=[...S.badges].length?`<div class="badges">${[...S.badges].map(b=>`<span class="badge">🏅 ${badgeName(b)}</span>`).join("")}</div>`:"";
   const unlockHtml=newly.length?`<div class="event good"><b>🔓 Unlocked:</b> ${newly.join(" · ")} — try them on your next run!</div>`:"";
   const bestHtml=score>=META.best?`<div class="pill" style="background:rgba(255,210,74,.15);color:var(--gold)">🔥 New best score!</div>`:`<div class="pill">Best: ${META.best.toLocaleString()}</div>`;
 
   screen().innerHTML=`<div class="card center">
-    <div class="pill">${S.sit.name} · ${PERKS[S.perk].icon} ${PERKS[S.perk].name} · 24 months</div>
+    <div class="pill">${S.avatar} ${S.name} · ${S.sit.name} · ${PERKS[S.perk].icon} ${PERKS[S.perk].name}</div>
     <div class="grade" style="color:var(--gold)">${emoji} ${grade}</div>
     <div class="big-num" id="score-anim">0</div>
     <div class="center sub" style="margin:-4px 0 8px">final score${goalBonus?` (incl. +${goalBonus.toLocaleString()} goal bonus)`:""}</div>
@@ -1005,6 +1202,7 @@ function showResults(){
       <div class="event">Invested<br><b>${money(invested())}</b></div>
       <div class="event">Emergency fund<br><b>${money(S.savings)}</b></div>
     </div>
+    ${storyHtml}
     <div style="text-align:left;margin-bottom:12px"><b>🎯 Goals</b>
       ${goalRows.map(g=>`<div class="goal-result"><span style="color:${g.met?'var(--green)':'var(--muted)'}">${g.met?'✓':'✗'} ${g.d}</span><span class="amt ${g.met?'pos':''}" style="color:${g.met?'var(--green)':'var(--muted)'}">${g.met?'+'+g.bonus.toLocaleString():'—'}</span></div>`).join("")}
     </div>
@@ -1027,7 +1225,18 @@ function checkUnlocks(grade,score){
   if(S.badges.has("diamond")) add(META.perks,"coolhead",PERKS.coolhead.icon+" "+PERKS.coolhead.name);
   if(S.badges.has("roller")) add(META.perks,"insider",PERKS.insider.icon+" "+PERKS.insider.name);
   if(S.happy>=80) add(META.perks,"optimist",PERKS.optimist.icon+" "+PERKS.optimist.name);
+  // cosmetic unlocks (avatars + themes)
+  add(META.themes,"sunset","🎨 Sunset theme");
+  if(S.badges.has("prepared")) add(META.themes,"mint","🎨 Mint theme");
+  if(S.badges.has("invested")) add(META.avatars,"🤖","🤖 Robot avatar");
+  if(S.badges.has("roller")) add(META.avatars,"👽","👽 Alien avatar");
+  if(score>=15000) add(META.avatars,"🔥","🔥 Fire avatar");
+  if(score>=20000) add(META.themes,"goldrush","🎨 Gold Rush theme");
+  if(score>=25000) add(META.avatars,"👑","👑 Crown avatar");
+  if(grade==="S"||grade==="A"){ add(META.avatars,"🦄","🦄 Unicorn avatar"); add(META.themes,"vapor","🎨 Vaporwave theme"); }
+  if(grade==="S") add(META.avatars,"🐉","🐉 Dragon avatar");
   S.badges.forEach(b=>{ if(!META.badges.includes(b)) META.badges.push(b); });
+  META.runs=(META.runs||0)+1;
   if(score>META.best) META.best=score;
   saveMeta();
   return newly;
@@ -1037,6 +1246,7 @@ function badgeName(id){
 }
 
 // boot
+applyTheme(META.theme);
 showStart();
 window.addEventListener("resize", ()=>{ if($("chart")) drawChart(); });
 </script>

@@ -21,6 +21,9 @@ Each month folds three classic money lessons into one turn:
 - **Multi-asset investing** — split between 🛡️ Bonds, 🐢 Blue-Chip, 🎢 Crypto, and 🏠 Real Estate, each with its own risk/return personality.
 - **4 minigames** — Side Hustle, Coupon Dash, Day Trade, and Salary Negotiation.
 - **An AI advisor ("Penny")** reacts to your finances each month with a contextual tip.
+- **Make it yours** — pick a name, an avatar, and a color theme; unlock more avatars & themes by playing.
+- **A personalized "Money Story"** recap at the end — a shareable, screenshot-worthy summary of your run (temptations resisted, crashes survived, best/worst months, how you finished).
+- **Teen-relatable scenarios** — sneaker flips, content-creator gear, festival tickets, road trips, first-car costs, and more.
 - **Score = Net Worth × Happiness (+ goal bonuses)**, so hoarding every penny *or* blowing it all both lose. The skill is balance.
 - Lose by **burning out** (happiness hits 0) or **drowning in debt** (cash flow, not net worth, sinks you first).
 - **Sound, charts, confetti, and animations** throughout — no assets or libraries, all synthesized in-browser.
