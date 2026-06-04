@@ -197,6 +197,13 @@
   .jt.cur { width:32px; height:32px; font-size:19px; background:var(--panel); border-color:var(--accent2); box-shadow:0 0 0 2px rgba(0,212,255,.4), 0 4px 12px rgba(0,0,0,.4); animation:hop .45s; }
   @keyframes hop { 0%{transform:translateY(0)} 40%{transform:translateY(-9px)} 70%{transform:translateY(2px)} 100%{transform:translateY(0)} }
 
+  /* slot-machine event reveal */
+  .evslot { display:inline-block; min-width:1.4em; text-align:center; font-size:18px; margin-right:4px; }
+  .event.reveal .evtext { opacity:0; transition:opacity .4s ease; }
+  .event.reveal.revealed .evtext { opacity:1; }
+  .event.reveal.revealed .evslot { animation:popin .45s; }
+  @keyframes popin { 0%{transform:scale(.4) rotate(-12deg)} 55%{transform:scale(1.35) rotate(8deg)} 100%{transform:scale(1)} }
+
   /* power-up items bar */
   .items { background:rgba(255,210,74,.07); border:1px solid rgba(255,210,74,.4); border-radius:10px; padding:9px 12px; margin-bottom:14px; }
   .items .ihdr { font-size:12px; color:var(--gold); font-weight:700; margin-right:4px; }
@@ -596,6 +603,18 @@ function popFloat(text, positive){
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), 1100);
 }
+// slot-machine reveal of a monthly surprise event (spins, then settles)
+let _animEvent=false;
+function animateEventReveal(){
+  const slot=$("evslot"), banner=$("evbanner"); if(!slot||!banner) return;
+  const pool=["🎲","🎰","❓","💥","🎁","⭐","💰","🔔","📦","🎯"];
+  let n=0; const max=13;
+  const iv=setInterval(()=>{
+    slot.textContent=pool[Math.floor(Math.random()*pool.length)];
+    tone(560+Math.random()*120,0.02,"square",0.03);
+    if(++n>=max){ clearInterval(iv); slot.textContent="✨"; banner.classList.add("revealed"); sfx("coin"); }
+  }, 55);
+}
 function animateNum(el,target,isMoney){
   const start=parseFloat(el.dataset.v||"0"), t0=performance.now(), dur=550;
   function step(now){ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3), v=start+(target-start)*e; el.textContent=isMoney?money(v):Math.round(v); if(p<1) requestAnimationFrame(step); else el.dataset.v=target; }
@@ -778,6 +797,7 @@ function startMonth(){
   }
   // occasionally find a power-up item
   if(S.items.length<5 && Math.random()<0.13) giveItem(rand(Object.keys(ITEMS)));
+  _animEvent = !!S.thisEvent; // a real surprise this month → play the slot reveal once
   S.opp = Math.random()<BAL.flow.oppChance ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
   renderBudget();
 }
@@ -889,7 +909,10 @@ function renderBudget(){
     if(ev.amt) a=` <span class="amt ${ev.amt>0?'pos':'neg'}">${ev.amt>0?'+':''}${money(ev.amt)}</span>`;
     if(ev.raise) a=` <span class="amt pos">+${money(ev.raise)}/mo</span>`;
     if(ev.cut) a=` <span class="amt neg">-${money(ev.cut)}/mo · ${ev.months}mo</span>`;
-    evHtml=`<div class="event ${cls}">${ev.t}${a}</div>`;
+    // fresh-month events get a slot-machine reveal (a "roll" for the surprise)
+    evHtml = _animEvent
+      ? `<div class="event ${cls} reveal" id="evbanner"><span class="evslot" id="evslot">🎲</span><span class="evtext">${ev.t}${a}</span></div>`
+      : `<div class="event ${cls}">${ev.t}${a}</div>`;
   }
   const eventCash=(ev&&ev.amt)?ev.amt:0;
   const onHand=S.cash+S.thisIncome+eventCash;
@@ -934,7 +957,9 @@ function renderBudget(){
   if(afterNeeds<0){
     html+=`<div class="event bad"><b>You can't cover your needs this month.</b> We'll drain savings, then sell investments (at a panic-sell loss), then borrow. This is exactly what an emergency fund prevents.</div>
       <button class="primary" onclick="resolveTight(${onHand})">Scrape through →</button></div>`;
-    screen().innerHTML=html; return;
+    screen().innerHTML=html;
+    if(_animEvent && S.thisEvent) animateEventReveal();
+    _animEvent=false; return;
   }
 
   const max=Math.floor(afterNeeds);
@@ -961,6 +986,8 @@ function renderBudget(){
     <div class="remaining"><small>Unallocated money stays as cash (earns nothing).</small></div></div>`;
   screen().innerHTML=html;
   onSlide(max);
+  if(_animEvent && S.thisEvent) animateEventReveal();
+  _animEvent=false;
 }
 function allocRow(id,n,note,max){
   return `<div class="alloc-row"><div class="top"><span class="name">${n}<small>${note}</small></span><span class="num" id="num-${id}">$0</span></div>
