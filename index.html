@@ -1052,8 +1052,11 @@ function buyTempt(){ const t=S.tempt; S.cash-=t.cost; S.happy=clamp(S.happy+t.jo
 function declineTempt(){ S.happy=clamp(S.happy+BAL.happy.resist,0,100); S.temptResisted++; sfx("click"); if(S.temptResisted>=5) unlock("zen","Master of Restraint"); goMarket(); }
 
 // ============================ MARKET ============================
-function goMarket(){
-  updateHUD();
+// Controller: advance the market phase = resolve (mutate) then render (read-only).
+function goMarket(){ resolveMarket(); renderMarket(); }
+// MUTATES state: applies this month's returns, records history, stashes a
+// read-only snapshot (S.lastMarket) for the renderer to display.
+function resolveMarket(){
   const news = S.hotTip ? rand(NEWS.filter(n=>n.stock>=0.035)) : rand(NEWS);
   if(S.hotTip) S.hotTip=false;
   const nz=S.insider?0.5:1;
@@ -1062,25 +1065,28 @@ function goMarket(){
   S.savings*=BAL.market.savingsRate;
   const riskyBefore=before.bluechip+before.crypto+before.realestate;
   if(news.crash && riskyBefore>0){ unlock("diamond","Diamond Hands (held a crash)"); if(S.story)S.story.crashes++; }
-  // story: best/worst single-month investment swing
   const invDelta = ASSETS.reduce((s,a)=>s+(S.holdings[a.id]-before[a.id]),0);
   if(S.story){ if(invDelta>S.story.bestGain){ S.story.bestGain=invDelta; S.story.bestMonth=S.month; } if(invDelta<S.story.worstLoss){ S.story.worstLoss=invDelta; S.story.worstMonth=S.month; } }
-
+  S.history.push(Math.round(netWorth()));
+  S.lastMarket={ news, before, riskyBefore, invDelta, nothingInvested:(invested()===0 && riskyBefore===0 && before.bonds===0) };
+}
+// READ-ONLY render of the resolved market (no state mutation).
+function renderMarket(){
+  updateHUD();
+  const lm=S.lastMarket;
   let body;
-  if(invested()===0 && riskyBefore===0 && before.bonds===0){
+  if(lm.nothingInvested){
     body=`<div class="event">You have nothing invested, so the market doesn't touch your money.<br><small style="color:var(--muted)">Investing is how money grows while you sleep — try putting some in next month.</small></div>`;
   } else {
     body=`<div class="event">`;
-    ASSETS.forEach(a=>{ if(before[a.id]>0){ const d=S.holdings[a.id]-before[a.id]; body+=`${a.n}: ${money(before[a.id])} → <b>${money(S.holdings[a.id])}</b> <span class="amt ${d>=0?'pos':'neg'}">(${d>=0?'+':''}${money(d)})</span><br>`; } });
+    ASSETS.forEach(a=>{ if(lm.before[a.id]>0){ const d=S.holdings[a.id]-lm.before[a.id]; body+=`${a.n}: ${money(lm.before[a.id])} → <b>${money(S.holdings[a.id])}</b> <span class="amt ${d>=0?'pos':'neg'}">(${d>=0?'+':''}${money(d)})</span><br>`; } });
     body+=`</div>`;
   }
-  S.history.push(Math.round(netWorth()));
   const last=S.history[S.history.length-1], prev=S.history[S.history.length-2]||last;
   if(last>=prev) sfx("coin"); else sfx("bad");
-  if(Math.abs(invDelta)>=20) popFloat((invDelta>=0?"+":"")+money(invDelta), invDelta>=0);
-
+  if(Math.abs(lm.invDelta)>=20) popFloat((lm.invDelta>=0?"+":"")+money(lm.invDelta), lm.invDelta>=0);
   screen().innerHTML=`<div class="card"><h2>📰 Market Report — Month ${S.month}</h2>
-    <div class="market-news">${news.t}</div>${body}
+    <div class="market-news">${lm.news.t}</div>${body}
     <canvas id="chart"></canvas>
     <div class="big-num">${money(netWorth())}</div>
     <div class="center sub" style="margin:-4px 0 12px">net worth</div>
@@ -1095,16 +1101,23 @@ function endMonth(){
   advanceMonth();
 }
 function advanceMonth(){ S.month++; startMonth(); }
-function showCheckpoint(cp){
-  updateHUD();
+// Controller: resolve the checkpoint reward once, then render it.
+function showCheckpoint(cp){ const r=resolveCheckpoint(cp); renderCheckpoint(cp,r); }
+// MUTATES: grants the reward exactly once (idempotent — render can't re-grant).
+function resolveCheckpoint(cp){
   const nw=netWorth(), passed=nw>=cp.target;
-  if(passed){ S.happy=clamp(S.happy+5,0,100); S.checkBonus=(S.checkBonus||0)+1500; if(S.items.length<5) giveItem(rand(Object.keys(ITEMS))); confetti(); sfx("win"); }
-  else sfx("bad");
+  if(passed){ S.happy=clamp(S.happy+5,0,100); S.checkBonus=(S.checkBonus||0)+1500; if(S.items.length<5) giveItem(rand(Object.keys(ITEMS))); }
+  return { nw, passed };
+}
+// READ-ONLY render.
+function renderCheckpoint(cp,r){
+  updateHUD();
+  if(r.passed){ confetti(); sfx("win"); } else sfx("bad");
   screen().innerHTML=`<div class="card center">
-    <div class="grade" style="font-size:46px">${passed?"🏆":"💢"}</div>
+    <div class="grade" style="font-size:46px">${r.passed?"🏆":"💢"}</div>
     <h2>${cp.name}</h2>
-    <div class="sub">Target: <b>${money(cp.target)}</b> net worth · You: <b style="color:${passed?'var(--green)':'var(--red)'}">${money(nw)}</b></div>
-    <div class="event ${passed?'good':'bad'}">${passed
+    <div class="sub">Target: <b>${money(cp.target)}</b> net worth · You: <b style="color:${r.passed?'var(--green)':'var(--red)'}">${money(r.nw)}</b></div>
+    <div class="event ${r.passed?'good':'bad'}">${r.passed
       ? `✅ Checkpoint cleared! <b>+5 happiness</b>, a <b>bonus item</b>, and <b>+$1,500</b> to your final score.`
       : `❌ Just short this time — no bonus, but the run's not over. Keep pushing!`}</div>
     <button class="primary" onclick="advanceMonth()">Continue →</button>
@@ -1333,19 +1346,22 @@ function buildStory(grade){
   return L;
 }
 
-function showResults(){
+// Controller: finalize the run once (mutates META via unlocks), then render.
+function showResults(){ renderResults(finalizeRun()); }
+// MUTATES META (unlocks/best/runs). Computes the score & grade exactly once.
+function finalizeRun(){
   const nw=netWorth(), h=S.happy;
   const base=Math.max(0,Math.round(nw*(h/100)));
-  // goal bonuses
   let goalBonus=0; const goalRows=S.goals.map(g=>{ const met=g.check(); if(met) goalBonus+=g.bonus; return {d:g.d,met,bonus:g.bonus}; });
   const checkBonus=S.checkBonus||0;
   const score=base+goalBonus+checkBonus;
-
   const gr=GRADES.find(g=>score>g[0]); const grade=gr[1], emoji=gr[2], blurb=gr[3];
-
-  // meta unlocks
-  const newly=checkUnlocks(grade,score);
-
+  const newly=checkUnlocks(grade,score); // mutates META
+  return { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows };
+}
+// READ-ONLY render of the finalized run.
+function renderResults(R){
+  const { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows } = R;
   const tips=[];
   if(invested()<nw*0.25) tips.push("Most of your money sat in cash — invested money compounds and grows far faster.");
   if(h<45) tips.push("Your happiness was low. All-out saving isn't 'winning' if you're miserable — budget some fun.");
