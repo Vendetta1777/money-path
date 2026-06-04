@@ -67,6 +67,8 @@
   .advisor { display:flex; gap:10px; align-items:flex-start; background:rgba(139,107,255,.08); border:1px solid rgba(139,107,255,.4); border-radius:12px; padding:11px 13px; margin-bottom:14px; }
   .advisor .face { font-size:24px; line-height:1; }
   .advisor .txt { font-size:13px; line-height:1.45; } .advisor .txt b { color:var(--accent2); }
+  .advisor .pread { font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .advisor .pread b { color:var(--text); }
 
   .goals { background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:9px 12px; margin-bottom:14px; font-size:12px; }
   .goals .ghdr { color:var(--muted); font-weight:700; margin-bottom:3px; }
@@ -234,7 +236,30 @@
 "use strict";
 
 // ============================ CONFIG ============================
-const TOTAL_MONTHS = 24;
+// All gameplay tuning lives here so balance changes happen in ONE place.
+const BAL = {
+  months: 24,
+  startCash: 700,
+  flow:  { eventChance:0.55, raiseChance:0.10, cutChance:0.18, dilemmaChance:0.28,
+           oppChance:0.50, temptChance:0.60, temptMinCash:120 },
+  debt:  { interest:1.05, interestCoolhead:1.025, gameOver:-3500 },
+  happy: { grind:-3, grindOptimist:-1.5, funMax:16, funK:420,
+           stressNoBuffer:-2, stressDebt:-5, tight:-12, tightInsured:-7, resist:-1 },
+  creep: { hiFun:0.5, loFun:0.2, up:1.05, down:0.98, cap:1.7 },
+  market:{ panicSell:0.95, savingsRate:1.0015 },
+  trade: { oddsUp:0.45, oddsInsider:0.50, payout:1.9, maxStake:800 },
+  unlock:{ avatarFire:15000, themeGold:20000, avatarCrown:25000 },
+};
+// score thresholds → grade, emoji, blurb
+const GRADES = [
+  [30000,"S","🏆","Financial wizard — wealthy AND happy. The dream run."],
+  [19000,"A","🌟","Excellent balance of growth and life. Very strong."],
+  [11000,"B","✅","Solid — you built wealth without losing yourself."],
+  [5000, "C","🙂","Decent. Room to invest more — or enjoy life more."],
+  [700,  "D","😬","You survived, but barely grew. Invest earlier next time."],
+  [-1e9, "F","🥵","Rough run — build an emergency fund and invest sooner."],
+];
+const TOTAL_MONTHS = BAL.months;
 
 const SITUATIONS = [
   { id:"student", name:"🎓 College Student", income:1900, needs:1400, happy:64, diff:"easy",
@@ -653,14 +678,14 @@ function newGame(sit, perkId){
   S = {
     sit, perk:perkId, month:1,
     income:sit.income, baseNeeds:sit.needs, needs:sit.needs,
-    cash:700, savings:sit.startSavings||0,
+    cash:BAL.startCash, savings:sit.startSavings||0,
     holdings:{bonds:0,bluechip:0,crypto:0,realestate:0},
     happy:sit.happy, cutLeft:0, discount:0,
     history:[], badges:new Set(),
     temptResisted:0, hustleEarned:0, everDebt:false, insured:false,
     goals:sampleGoals(),
     optimist:false, coolhead:false, hustleEdge:false, insider:false,
-    name:(META.name&&META.name.trim())||"Player", avatar:META.avatar||"🧑",
+    name:(META.name&&META.name.trim())||"Player", avatar:META.avatar||"🧑", prevHappy:sit.happy,
     // life-story trackers
     story:{ bought:0, bestGain:0, bestMonth:0, worstLoss:0, worstMonth:0, crashes:0, raises:0, gigs:0, dilemmas:0, brokeMonth:0 },
   };
@@ -677,22 +702,22 @@ function newGame(sit, perkId){
 // ============================ MONTH START ============================
 function startMonth(){
   S.discount=0;
-  if(S.cash<0){ S.cash=Math.round(S.cash*(S.coolhead?1.025:1.05)); markDebt(); } // debt interest
+  if(S.cash<0){ S.cash=Math.round(S.cash*(S.coolhead?BAL.debt.interestCoolhead:BAL.debt.interest)); markDebt(); } // debt interest
   let inc=S.income;
   if(S.sit.volatile) inc=Math.round(S.income*(0.55+Math.random()*0.85));
   if(S.cutLeft>0){ inc-=CUT_EVENT.cut; S.cutLeft--; }
   S.thisIncome=Math.max(0,inc);
 
-  // dilemma (28%) takes priority; otherwise normal event (55%)
+  // dilemma takes priority; otherwise a normal event
   S.thisEvent=null;
-  if(Math.random()<0.28){ return showDilemma(rand(DILEMMAS)); }
-  if(Math.random()<0.55){
+  if(Math.random()<BAL.flow.dilemmaChance){ return showDilemma(rand(DILEMMAS)); }
+  if(Math.random()<BAL.flow.eventChance){
     const r=Math.random();
-    if(r<0.10){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; if(S.story)S.story.raises++; }
-    else if(r<0.18 && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
+    if(r<BAL.flow.raiseChance){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; if(S.story)S.story.raises++; }
+    else if(r<BAL.flow.cutChance && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
     else S.thisEvent={...rand(EVENTS)};
   }
-  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
+  S.opp = Math.random()<BAL.flow.oppChance ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
   renderBudget();
 }
 
@@ -719,22 +744,77 @@ function chooseDilemma(i){
   markDebt();
   sfx(res.happy>0?"coin":"click");
   // proceed to a normal opportunity roll then budget
-  S.opp = Math.random()<0.5 ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
+  S.opp = Math.random()<BAL.flow.oppChance ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
   screen().innerHTML=`<div class="card"><h2>${res.happy>=0?"✅":"😬"} Outcome</h2>
     <div class="event ${res.happy>=0?'good':'bad'}">${res.msg}${res.happy?` <span class="amt ${res.happy>0?'pos':'neg'}">${res.happy>0?'+':''}${res.happy} happiness</span>`:""}</div>
     <button class="primary" onclick="renderBudget()">Continue to budget →</button></div>`;
 }
 
 // ============================ ADVISOR ============================
-function advisorTip(){
-  if(S.cash<0) return "You're in <b>debt</b> — interest compounds against you. Get back to $0 before investing.";
-  if(S.savings<effNeeds()) return "You've got almost no <b>emergency fund</b>. One bad month could force a fire-sale of investments — build a buffer first.";
-  if(S.cash>effNeeds()*2 && invested()<500) return "You're sitting on a pile of <b>idle cash</b>. Money doing nothing slowly loses value — put some to work.";
-  if(S.holdings.crypto>invested()*0.6 && invested()>1200) return "Whoa — you're heavily in <b>crypto</b>. It can crash hard. Spreading across assets smooths the ride.";
-  if(S.happy<45) return "Your <b>happiness</b> is low. It's okay to budget some Fun — burnout is a real way to lose.";
-  if(S.needs>S.baseNeeds*1.2) return "Your cost of living has <b>crept up</b>. Easing off big Fun spending lets it drift back down.";
-  if(invested()>8000) return "Nice — your investments are <b>compounding</b>. Keep feeding them and let time work.";
-  return "Looking balanced. Cover needs, hold a buffer, invest the rest, and enjoy a little.";
+// ---- Penny: a rule-based reasoning engine (no AI/API) -------------------
+// Step 1: read the real game state into derived "signals".
+function analyzeSituation(){
+  const monthsLeft = TOTAL_MONTHS - S.month + 1;
+  const need = effNeeds();
+  const inv = invested();
+  const nw = netWorth();
+  const liquid = S.cash + S.savings;               // money you could reach this month
+  const runway = need>0 ? liquid/need : 99;        // months of needs you can cover
+  const savingsMonths = need>0 ? S.savings/need : 99;
+  const investRatio = nw>0 ? inv/nw : 0;
+  let topAsset=null, topShare=0;
+  if(inv>0) ASSETS.forEach(a=>{ const sh=S.holdings[a.id]/inv; if(sh>topShare){ topShare=sh; topAsset=a; } });
+  const cryptoShare = inv>0 ? S.holdings.crypto/inv : 0;
+  const assetCount = ASSETS.filter(a=>S.holdings[a.id]>0).length;
+  const idleCash = Math.max(0, S.cash - need);      // cash beyond one month of needs
+  const happyTrend = (S.prevHappy!=null) ? S.happy - S.prevHappy : 0;
+  const creepRatio = S.needs / S.baseNeeds;
+  return { monthsLeft, need, inv, nw, liquid, runway, savingsMonths, investRatio,
+           topAsset, topShare, cryptoShare, assetCount, idleCash, happyTrend, creepRatio };
+}
+function pennyRead(a){
+  const parts=[ `runway <b>${a.runway>=10?'10+':a.runway.toFixed(1)} mo</b>`,
+                `<b>${Math.round(a.investRatio*100)}%</b> invested`,
+                `mood <b>${Math.round(S.happy)}</b>${a.happyTrend<-0.5?' ↓':a.happyTrend>0.5?' ↑':''}`,
+                `<b>${a.monthsLeft}</b> mo left` ];
+  if(a.inv>0) parts.push(`${a.assetCount} asset${a.assetCount===1?'':'s'}`);
+  return parts.join(" · ");
+}
+// Step 2: reason — fire prioritized rules, each citing the actual numbers.
+function pennyAdvice(){
+  const a=analyzeSituation(), need=a.need;
+  const emTarget=Math.max(50, Math.round((need*3 - S.savings)/50)*50);
+  const funSug=Math.max(100, Math.round((need*0.18)/50)*50);
+  const rules=[
+    { sev:100, on:()=> S.cash<0,
+      tip:()=>`You're <b>${money(-S.cash)}</b> in debt and it grows ~5%/mo. Clear it before investing — debt is a guaranteed loss bigger than any return you'd earn.` },
+    { sev:92, on:()=> S.cash>=0 && a.runway<1,
+      tip:()=>`⚠️ Only <b>${a.runway.toFixed(1)} months</b> of runway. One surprise bill would force you to sell investments at a loss — move ~<b>${money(Math.min(emTarget,Math.max(0,a.liquid)))}</b> into your emergency fund this month.` },
+    { sev:80, on:()=> S.happy<32,
+      tip:()=>`Happiness is critically low (<b>${Math.round(S.happy)}</b>) — hit 0 and it's game over. Put ~<b>${money(funSug)}</b> toward Fun now to pull out of the danger zone.` },
+    { sev:68, on:()=> a.monthsLeft<=4 && a.cryptoShare>0.3 && a.inv>1500,
+      tip:()=>`Just <b>${a.monthsLeft} months</b> left — not enough time to recover from a crypto crash. Shift some of your <b>${Math.round(a.cryptoShare*100)}%</b> crypto into bonds to lock in what you've gained.` },
+    { sev:64, on:()=> a.cryptoShare>0.5 && a.inv>1200,
+      tip:()=>`<b>${Math.round(a.cryptoShare*100)}%</b> of your portfolio is in crypto — it loses money in most stretches. Trimming into bonds or real estate cuts risk without killing your upside.` },
+    { sev:58, on:()=> a.savingsMonths<1.5 && a.runway>=1,
+      tip:()=>`Your emergency fund covers only <b>${a.savingsMonths.toFixed(1)} months</b> of needs. Build toward 3 (about <b>${money(emTarget)}</b> more) so a bad month can't wreck your investments.` },
+    { sev:50, on:()=> S.happy<48,
+      tip:()=>`Happiness is slipping to <b>${Math.round(S.happy)}</b>${a.happyTrend<0?' and trending down':''}. Budget ~<b>${money(funSug)}</b> to Fun — a burnt-out run scores low even if you're rich.` },
+    { sev:46, on:()=> a.assetCount===1 && a.inv>1500,
+      tip:()=>`All your investing sits in one asset (<b>${a.topAsset.n}</b>). Spreading across 3+ assets is a free way to lower risk — try adding bonds or real estate.` },
+    { sev:44, on:()=> a.creepRatio>1.2,
+      tip:()=>`Lifestyle creep has pushed your needs up <b>${Math.round((a.creepRatio-1)*100)}%</b>. Keep Fun modest for a couple of months and your cost of living will drift back down.` },
+    { sev:40, on:()=> a.idleCash>need*1.5 && a.monthsLeft>4 && a.runway>2,
+      tip:()=>`You've got about <b>${money(a.idleCash)}</b> in idle cash beyond your buffer. With <b>${a.monthsLeft} months</b> left, put some to work — idle cash just loses to inflation.` },
+    { sev:36, on:()=> a.investRatio<0.25 && a.monthsLeft>8 && a.runway>2,
+      tip:()=>`You're only <b>${Math.round(a.investRatio*100)}%</b> invested with <b>${a.monthsLeft} months</b> to go. Time is your biggest edge — leaning into investing now gives compounding room to run.` },
+    { sev:30, on:()=> a.monthsLeft<=3 && S.happy<72,
+      tip:()=>`Final stretch — your score is Net Worth × Happiness, so a little Fun now (~<b>${money(funSug)}</b>) directly lifts your final number.` },
+    { sev:10, on:()=> true,
+      tip:()=>`Nicely balanced — <b>${a.runway>=10?'10+':a.runway.toFixed(1)} mo</b> of runway, <b>${Math.round(a.investRatio*100)}%</b> invested${a.inv>0?`, across ${a.assetCount} asset${a.assetCount===1?'':'s'}`:''}. Keep covering needs, holding the buffer, and letting it compound.` },
+  ];
+  const fired=rules.filter(r=>r.on()).sort((x,y)=>y.sev-x.sev)[0];
+  return { read: pennyRead(a), tip: fired.tip() };
 }
 
 // ============================ BUDGET ============================
@@ -768,9 +848,13 @@ function renderBudget(){
   const goalsHtml=`<div class="goals"><div class="ghdr">🎯 Run goals (bonus score)</div>` +
     S.goals.map(g=>`<span class="gitem ${g.check()?'done':''}">${g.check()?'✓':'◻'} ${g.d}</span>`).join("") + `</div>`;
 
+  const pa=pennyAdvice();
   let html=`<div class="card"><h2>Month ${S.month} — Budget</h2>
     <div class="sub">Cover needs, keep a buffer, invest the rest, enjoy a little.</div>
-    <div class="advisor"><div class="face">🤖</div><div class="txt"><b>Penny says:</b> ${advisorTip()}</div></div>
+    <div class="advisor"><div class="face">🤖</div><div class="txt">
+      <div class="pread">📊 ${pa.read}</div>
+      <div style="margin-top:4px"><b>Penny:</b> ${pa.tip}</div>
+    </div></div>
     ${evHtml}${oppHtml}${goalsHtml}
     <div class="event">💵 Income <span class="amt pos">+${money(S.thisIncome)}</span> ·
       🏠 Needs <span class="amt neg">-${money(need)}</span>
@@ -848,16 +932,17 @@ function confirmBudget(afterNeeds){
   markDebt();
 
   // happiness
-  let dH = S.optimist ? -1.5 : -3;
-  dH += 16*(1-Math.exp(-v.fun/420));
-  if(S.savings<effNeeds()) dH-=2;
-  if(S.cash<0) dH-=5;
+  S.prevHappy = S.happy; // for Penny's trend read
+  let dH = S.optimist ? BAL.happy.grindOptimist : BAL.happy.grind;
+  dH += BAL.happy.funMax*(1-Math.exp(-v.fun/BAL.happy.funK));
+  if(S.savings<effNeeds()) dH+=BAL.happy.stressNoBuffer;
+  if(S.cash<0) dH+=BAL.happy.stressDebt;
   S.happy=clamp(S.happy+dH,0,100);
 
   // lifestyle creep
   const funRatio=S.thisIncome>0?v.fun/S.thisIncome:0;
-  if(funRatio>0.5){ const b=S.needs; S.needs=Math.min(Math.round(S.needs*1.05),Math.round(S.baseNeeds*1.7)); if(S.needs>b) toast("📈 Lifestyle creep: your needs went up"); }
-  else if(funRatio<0.2 && S.needs>S.baseNeeds){ S.needs=Math.max(Math.round(S.needs*0.98),S.baseNeeds); }
+  if(funRatio>BAL.creep.hiFun){ const b=S.needs; S.needs=Math.min(Math.round(S.needs*BAL.creep.up),Math.round(S.baseNeeds*BAL.creep.cap)); if(S.needs>b) toast("📈 Lifestyle creep: your needs went up"); }
+  else if(funRatio<BAL.creep.loFun && S.needs>S.baseNeeds){ S.needs=Math.max(Math.round(S.needs*BAL.creep.down),S.baseNeeds); }
 
   if(invested()>=10000) unlock("invested","Five-Figure Investor");
   if(S.savings>=effNeeds()*3) unlock("prepared","Prepared (3-month fund)");
@@ -869,7 +954,7 @@ function resolveTight(onHand){
   if(deficit>0){
     const sellable=invested();
     if(sellable>0){
-      const lossFactor=S.coolhead?1:0.95;
+      const lossFactor=S.coolhead?1:BAL.market.panicSell;
       const take=Math.min(sellable,deficit/lossFactor);
       const f=take/sellable;
       ASSETS.forEach(a=>{ S.holdings[a.id]-=S.holdings[a.id]*f; });
@@ -877,7 +962,8 @@ function resolveTight(onHand){
     }
   }
   if(deficit>0){ S.cash-=deficit; markDebt(); }
-  S.happy=clamp(S.happy-(S.insured?7:12),0,100);
+  S.prevHappy=S.happy;
+  S.happy=clamp(S.happy+(S.insured?BAL.happy.tightInsured:BAL.happy.tight),0,100);
   sfx("bad"); shake(); toast("😣 No buffer — you took a hit");
   goTemptation();
 }
@@ -885,7 +971,7 @@ function resolveTight(onHand){
 // ============================ TEMPTATION ============================
 function goTemptation(){
   updateHUD();
-  if(Math.random()>0.6 || S.cash<120) return goMarket();
+  if(Math.random()>BAL.flow.temptChance || S.cash<BAL.flow.temptMinCash) return goMarket();
   const t=rand(TEMPTATIONS); S.tempt=t; const afford=S.cash>=t.cost;
   screen().innerHTML=`<div class="card"><h2>💳 Temptation!</h2>
     <div class="sub">A little dopamine now... or let that money compound for future you?</div>
@@ -895,7 +981,7 @@ function goTemptation(){
     <button class="primary" onclick="buyTempt()" ${afford?"":"disabled"}>${afford?"Treat myself 🛍️":"Can't afford"}</button></div></div>`;
 }
 function buyTempt(){ const t=S.tempt; S.cash-=t.cost; S.happy=clamp(S.happy+t.joy,0,100); if(S.story)S.story.bought++; sfx("coin"); markDebt(); goMarket(); }
-function declineTempt(){ S.happy=clamp(S.happy-1,0,100); S.temptResisted++; sfx("click"); if(S.temptResisted>=5) unlock("zen","Master of Restraint"); goMarket(); }
+function declineTempt(){ S.happy=clamp(S.happy+BAL.happy.resist,0,100); S.temptResisted++; sfx("click"); if(S.temptResisted>=5) unlock("zen","Master of Restraint"); goMarket(); }
 
 // ============================ MARKET ============================
 function goMarket(){
@@ -903,7 +989,7 @@ function goMarket(){
   const news=rand(NEWS); const nz=S.insider?0.5:1;
   const before={}; ASSETS.forEach(a=>before[a.id]=S.holdings[a.id]);
   ASSETS.forEach(a=>{ const ret=news.stock*a.mult+a.base+(Math.random()-0.5)*2*a.noise*nz; S.holdings[a.id]=Math.max(0,S.holdings[a.id]*(1+ret)); });
-  S.savings*=1.0015;
+  S.savings*=BAL.market.savingsRate;
   const riskyBefore=before.bluechip+before.crypto+before.realestate;
   if(news.crash && riskyBefore>0){ unlock("diamond","Diamond Hands (held a crash)"); if(S.story)S.story.crashes++; }
   // story: best/worst single-month investment swing
@@ -933,7 +1019,7 @@ function goMarket(){
 }
 function endMonth(){
   if(S.happy<=0) return gameOver("burnout");
-  if(S.cash<-3500) return gameOver("debt");
+  if(S.cash<BAL.debt.gameOver) return gameOver("debt");
   if(S.month>=TOTAL_MONTHS) return showResults();
   S.month++; startMonth();
 }
@@ -997,8 +1083,8 @@ function openCoupon(){
 }
 // Day Trade — risky bet
 function openTrade(){
-  S.opp=null; sfx("click"); if(S.story)S.story.gigs++; const maxStake=Math.min(800,Math.max(0,Math.floor(S.cash)));
-  openOverlay(`<h3>🎲 Day Trade</h3><div class="sub">Bet on the next tick. Win pays <b>1.9×</b>, but it's a coin flip — the odds quietly favor losing. (That's the lesson 😉)${S.insider?"<br><b style='color:var(--accent2)'>Insider perk: fair 50/50 odds.</b>":""}</div>
+  S.opp=null; sfx("click"); if(S.story)S.story.gigs++; const maxStake=Math.min(BAL.trade.maxStake,Math.max(0,Math.floor(S.cash)));
+  openOverlay(`<h3>🎲 Day Trade</h3><div class="sub">Bet on the next tick. Win pays <b>${BAL.trade.payout}×</b>, but it's a coin flip — the odds quietly favor losing. (That's the lesson 😉)${S.insider?"<br><b style='color:var(--accent2)'>Insider perk: fair 50/50 odds.</b>":""}</div>
     <div class="mg-hud"><span>Stake</span><span id="t-stake">$0</span></div>
     <input type="range" min="0" max="${maxStake}" step="20" value="0" id="t-range" oninput="$('t-stake').textContent=money(+this.value)" style="width:100%">
     <div class="btn-row" style="margin-top:14px"><button onclick="doTrade(true)">📈 Bet UP</button><button onclick="doTrade(false)">📉 Bet DOWN</button></div>
@@ -1006,12 +1092,12 @@ function openTrade(){
 }
 function doTrade(betUp){
   const stake=+$("t-range").value; if(stake<=0){ toast("Pick a stake first"); return; }
-  const wentUp=Math.random()<(S.insider?0.5:0.45); const win=(betUp===wentUp);
-  S.cash-=stake; if(win){ S.cash+=Math.round(stake*1.9); unlock("roller","High Roller"); sfx("win"); } else { sfx("bad"); }
+  const wentUp=Math.random()<(S.insider?BAL.trade.oddsInsider:BAL.trade.oddsUp); const win=(betUp===wentUp);
+  S.cash-=stake; if(win){ S.cash+=Math.round(stake*BAL.trade.payout); unlock("roller","High Roller"); sfx("win"); } else { sfx("bad"); }
   markDebt();
   $("ov").querySelector(".modal").innerHTML=`<h3>${win?"📈 You won! 🎉":"📉 You lost"}</h3>
     <div class="sub">Market went ${wentUp?"UP":"DOWN"}.</div>
-    <div class="big-num" style="color:${win?'var(--green)':'var(--red)'}">${win?"+"+money(stake*0.9):"-"+money(stake)}</div>
+    <div class="big-num" style="color:${win?'var(--green)':'var(--red)'}">${win?"+"+money(stake*(BAL.trade.payout-1)):"-"+money(stake)}</div>
     <button class="primary" onclick="closeOv()">Back to budget →</button>`;
   if(win) confetti();
 }
@@ -1176,13 +1262,7 @@ function showResults(){
   let goalBonus=0; const goalRows=S.goals.map(g=>{ const met=g.check(); if(met) goalBonus+=g.bonus; return {d:g.d,met,bonus:g.bonus}; });
   const score=base+goalBonus;
 
-  let grade,emoji,blurb;
-  if(score>30000){grade="S";emoji="🏆";blurb="Financial wizard — wealthy AND happy. The dream run.";}
-  else if(score>19000){grade="A";emoji="🌟";blurb="Excellent balance of growth and life. Very strong.";}
-  else if(score>11000){grade="B";emoji="✅";blurb="Solid — you built wealth without losing yourself.";}
-  else if(score>5000){grade="C";emoji="🙂";blurb="Decent. Room to invest more — or enjoy life more.";}
-  else if(score>700){grade="D";emoji="😬";blurb="You survived, but barely grew. Invest earlier next time.";}
-  else {grade="F";emoji="🥵";blurb="Rough run — build an emergency fund and invest sooner.";}
+  const gr=GRADES.find(g=>score>g[0]); const grade=gr[1], emoji=gr[2], blurb=gr[3];
 
   // meta unlocks
   const newly=checkUnlocks(grade,score);
@@ -1247,9 +1327,9 @@ function checkUnlocks(grade,score){
   if(S.badges.has("prepared")) add(META.themes,"mint","🎨 Mint theme");
   if(S.badges.has("invested")) add(META.avatars,"🤖","🤖 Robot avatar");
   if(S.badges.has("roller")) add(META.avatars,"👽","👽 Alien avatar");
-  if(score>=15000) add(META.avatars,"🔥","🔥 Fire avatar");
-  if(score>=20000) add(META.themes,"goldrush","🎨 Gold Rush theme");
-  if(score>=25000) add(META.avatars,"👑","👑 Crown avatar");
+  if(score>=BAL.unlock.avatarFire) add(META.avatars,"🔥","🔥 Fire avatar");
+  if(score>=BAL.unlock.themeGold) add(META.themes,"goldrush","🎨 Gold Rush theme");
+  if(score>=BAL.unlock.avatarCrown) add(META.avatars,"👑","👑 Crown avatar");
   if(grade==="S"||grade==="A"){ add(META.avatars,"🦄","🦄 Unicorn avatar"); add(META.themes,"vapor","🎨 Vaporwave theme"); }
   if(grade==="S") add(META.avatars,"🐉","🐉 Dragon avatar");
   S.badges.forEach(b=>{ if(!META.badges.includes(b)) META.badges.push(b); });
