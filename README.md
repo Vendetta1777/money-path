@@ -20,7 +20,10 @@ Each month folds three classic money lessons into one turn:
 - **Branching life dilemmas** — invest in a friend's startup, lend to family, buy insurance... real choices with risk and reward.
 - **Multi-asset investing** — split between 🛡️ Bonds, 🐢 Blue-Chip, 🎢 Crypto, and 🏠 Real Estate, each with its own risk/return personality.
 - **4 minigames** — Side Hustle, Coupon Dash, Day Trade, and Salary Negotiation.
-- **An AI advisor ("Penny")** reacts to your finances each month with a contextual tip.
+- **"Penny," a rule-based advisor that actually reasons** (no AI/API) — she reads your real situation (runway in months, diversification, risk exposure, months left, lifestyle creep) and gives prioritized advice that cites your actual numbers and adapts to early vs. late game.
+- **A journey board** — a board-game path your avatar token hops along, month by month, past ⭐ checkpoints to the 🏁 finish.
+- **Boss checkpoints** — Quarter / Mid-Year / Year-End reviews with net-worth targets to beat for bonus score and items.
+- **Power-up items** — collect and strategically play 🛡️ Insurance, 🔮 Hot Tip, 💰 Windfall, and 🎲 Re-roll.
 - **Make it yours** — pick a name, an avatar, and a color theme; unlock more avatars & themes by playing.
 - **A personalized "Money Story"** recap at the end — a shareable, screenshot-worthy summary of your run (temptations resisted, crashes survived, best/worst months, how you finished).
 - **Teen-relatable scenarios** — sneaker flips, content-creator gear, festival tickets, road trips, first-car costs, and more.
