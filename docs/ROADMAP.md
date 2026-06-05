@@ -29,7 +29,7 @@ Each session = one small, shippable improvement:
 ## M1 — Vertical Slice: a polished, shippable core loop  ·  🎯 due 2026-06-19
 *Make the existing game "store-demo quality."*
 - ☐ **Shareable result card** (image/text) + "challenge a friend" — the viral loop
-- ☐ **Deterministic seed** (seeded RNG) → reproducible runs + a **Daily Challenge**
+- ☑ **Deterministic seed** (seeded RNG) → reproducible runs + a **Daily Challenge** *(done 2026-06-05)*
 - ☐ **Balance pass**: no dominant strategy; all-save is survivable-but-low, not instant burnout
 - ☐ **Mobile-responsive + installable PWA** (looks/feels right on a phone)
 - ☐ **Accessibility**: readable contrast, font scaling, `prefers-reduced-motion`

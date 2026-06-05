@@ -505,6 +505,7 @@ function loadMeta(){
   m.perks=m.perks||[]; m.sits=m.sits||[]; m.badges=m.badges||[]; m.best=m.best||0;
   m.name=m.name||""; m.avatar=m.avatar||"🧑"; m.theme=m.theme||"midnight";
   m.avatars=m.avatars||[]; m.themes=m.themes||[]; m.runs=m.runs||0;
+  m.daily=m.daily||{}; // { "YYYY-MM-DD": bestScore }
   return m;
 }
 function saveMeta(){ try{ localStorage.setItem(META_KEY, JSON.stringify(META)); }catch(e){} }
@@ -526,8 +527,44 @@ const screen = () => $("screen");
 const invested = () => ASSETS.reduce((s,a)=>s+S.holdings[a.id],0);
 const netWorth = () => S.cash + S.savings + invested();
 const effNeeds = () => Math.max(0, S.needs - S.discount);
-function sampleGoals(){ const p=[...GOAL_POOL]; const out=[]; for(let i=0;i<3;i++){ out.push(p.splice(Math.floor(Math.random()*p.length),1)[0]); } return out; }
 function markDebt(){ if(S.cash<0){ S.everDebt=true; if(S.story && !S.story.brokeMonth) S.story.brokeMonth=S.month; } }
+
+// ---- Seeded RNG + deterministic scenario -------------------------------
+// A given seed pre-generates the entire 24-month "world" (events, market,
+// dilemmas, temptations, opportunities) up front, so the run is identical
+// no matter what choices the player makes — only their path through it varies.
+function makeRng(seed){ let a=seed>>>0; return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function buildScenario(seed){
+  const rng=makeRng(seed);
+  const pick=arr=>arr[Math.floor(rng()*arr.length)];
+  const oppTypes=["hustle","trade","coupon","negotiate","memory","blitz"];
+  const itemKeys=Object.keys(ITEMS);
+  const months=[null]; // 1-indexed
+  let cutActive=0;
+  for(let m=1;m<=TOTAL_MONTHS;m++){
+    if(cutActive>0) cutActive--;
+    const M={ dilemma:null, event:null };
+    M.vol = 0.55 + rng()*0.85;
+    if(rng()<BAL.flow.dilemmaChance){ M.dilemma=pick(DILEMMAS); }
+    else if(rng()<BAL.flow.eventChance){
+      const r=rng();
+      if(r<BAL.flow.raiseChance) M.event={type:"raise"};
+      else if(r<BAL.flow.cutChance && cutActive===0){ M.event={type:"cut"}; cutActive=CUT_EVENT.months; }
+      else M.event=pick(EVENTS);
+    }
+    M.itemFind = rng()<0.13 ? pick(itemKeys) : null;
+    M.opp = rng()<BAL.flow.oppChance ? pick(oppTypes) : null;
+    M.tempt = rng()<BAL.flow.temptChance ? pick(TEMPTATIONS) : null;
+    M.news = pick(NEWS);
+    M.noise = ASSETS.map(()=>(rng()-0.5)*2);
+    months.push(M);
+  }
+  const gp=[...GOAL_POOL], goals=[];
+  for(let i=0;i<3;i++) goals.push(gp.splice(Math.floor(rng()*gp.length),1)[0]);
+  return { seed, months, goals };
+}
+const seedCode = s => (s>>>0).toString(36);  // short shareable code
 function giveItem(id){ if(!S.items) S.items=[]; if(S.items.length>=5) return; S.items.push(id); sfx("badge"); toast(ITEMS[id].icon+" Found item: "+ITEMS[id].name+"!"); }
 function useItem(i){ const id=S.items[i]; if(!id) return; S.items.splice(i,1); sfx("badge"); ITEMS[id].use(); markDebt(); renderBudget(); }
 
@@ -718,7 +755,15 @@ function showStart(){
       ${thHtml}
     </div>`;
 
+  const dayBest = META.daily[todayStr()];
+  const dailyCard = `<div class="card center">
+      <button class="gold" onclick="startDaily()">🗓️ Play today's Daily Challenge</button>
+      <div class="sub" style="margin:8px 0 0">Same run for everyone today — fixed life &amp; no perks. Compare scores!</div>
+      ${dayBest?`<div class="pill" style="margin-top:8px">⭐ Your best today: ${dayBest.toLocaleString()}</div>`:""}
+    </div>`;
+
   screen().innerHTML = `${customizeHtml}
+    ${dailyCard}
     <div class="card">
       <h2>Pick a perk</h2>
       <div class="sub">Unlock more by earning achievements. Choose one for this run.</div>
@@ -743,19 +788,28 @@ function startRun(sitId){
   if(!META.name || !META.name.trim()){ META.name="Player"; saveMeta(); }
   sfx("confirm"); newGame(sit, selectedPerk);
 }
+const todayStr = () => new Date().toISOString().slice(0,10);
+function startDaily(){
+  if(!META.name || !META.name.trim()){ META.name="Player"; saveMeta(); }
+  const day=todayStr(), seed=hashStr("moneypath-daily-"+day);
+  const sit=SITUATIONS[seed % SITUATIONS.length]; // same life for everyone today
+  sfx("confirm"); newGame(sit, "none", seed, day); // fixed perk = fair leaderboard
+}
 
 // ============================ NEW GAME ============================
-function newGame(sit, perkId){
+function newGame(sit, perkId, seed, daily){
   perkId = perkId || "none";
+  if(seed==null) seed = (Math.random()*4294967296)>>>0;
+  const scenario = buildScenario(seed);
   S = {
-    sit, perk:perkId, month:1,
+    sit, perk:perkId, month:1, seed, daily:daily||null, scenario,
     income:sit.income, baseNeeds:sit.needs, needs:sit.needs,
     cash:BAL.startCash, savings:sit.startSavings||0,
     holdings:{bonds:0,bluechip:0,crypto:0,realestate:0},
     happy:sit.happy, cutLeft:0, discount:0,
     history:[], badges:new Set(),
     temptResisted:0, hustleEarned:0, everDebt:false, insured:false,
-    goals:sampleGoals(),
+    goals:scenario.goals,
     optimist:false, coolhead:false, hustleEdge:false, insider:false,
     name:(META.name&&META.name.trim())||"Player", avatar:META.avatar||"🧑", prevHappy:sit.happy,
     items:[], shield:false, hotTip:false, checkBonus:0,
@@ -776,29 +830,29 @@ function newGame(sit, perkId){
 function startMonth(){
   S.discount=0;
   if(S.cash<0){ S.cash=Math.round(S.cash*(S.coolhead?BAL.debt.interestCoolhead:BAL.debt.interest)); markDebt(); } // debt interest
+  const M=S.scenario.months[S.month]; // pre-generated, deterministic
   let inc=S.income;
-  if(S.sit.volatile) inc=Math.round(S.income*(0.55+Math.random()*0.85));
+  if(S.sit.volatile) inc=Math.round(S.income*M.vol);
   if(S.cutLeft>0){ inc-=CUT_EVENT.cut; S.cutLeft--; }
   S.thisIncome=Math.max(0,inc);
 
-  // dilemma takes priority; otherwise a normal event
+  // dilemma takes priority; otherwise the pre-decided event
   S.thisEvent=null;
-  if(Math.random()<BAL.flow.dilemmaChance){ return showDilemma(rand(DILEMMAS)); }
-  if(Math.random()<BAL.flow.eventChance){
-    const r=Math.random();
-    if(r<BAL.flow.raiseChance){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; if(S.story)S.story.raises++; }
-    else if(r<BAL.flow.cutChance && S.cutLeft===0){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
-    else S.thisEvent={...rand(EVENTS)};
+  if(M.dilemma){ return showDilemma(M.dilemma); }
+  if(M.event){
+    if(M.event.type==="raise"){ S.income+=RAISE_EVENT.raise; S.thisEvent={...RAISE_EVENT}; if(S.story)S.story.raises++; }
+    else if(M.event.type==="cut"){ S.cutLeft=CUT_EVENT.months; S.thisEvent={...CUT_EVENT}; }
+    else S.thisEvent={...M.event};
   }
   // insurance item blocks an incoming bad event
   if(S.shield && S.thisEvent && S.thisEvent.amt && S.thisEvent.amt<0){
     S.thisEvent={ t:"🛡️ Your insurance covered a surprise expense — crisis averted!", amt:0, kind:"good" };
     S.shield=false;
   }
-  // occasionally find a power-up item
-  if(S.items.length<5 && Math.random()<0.13) giveItem(rand(Object.keys(ITEMS)));
+  // pre-rolled item find (runtime capacity check)
+  if(M.itemFind && S.items.length<5) giveItem(M.itemFind);
   _animEvent = !!S.thisEvent; // a real surprise this month → play the slot reveal once
-  S.opp = Math.random()<BAL.flow.oppChance ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
+  S.opp = M.opp;
   renderBudget();
 }
 
@@ -824,8 +878,8 @@ function chooseDilemma(i){
   if(S.story)S.story.dilemmas++;
   markDebt();
   sfx(res.happy>0?"coin":"click");
-  // proceed to a normal opportunity roll then budget
-  S.opp = Math.random()<BAL.flow.oppChance ? rand(["hustle","trade","coupon","negotiate","memory","blitz"]) : null;
+  // proceed to the pre-rolled opportunity then budget
+  S.opp = S.scenario.months[S.month].opp;
   screen().innerHTML=`<div class="card"><h2>${res.happy>=0?"✅":"😬"} Outcome</h2>
     <div class="event ${res.happy>=0?'good':'bad'}">${res.msg}${res.happy?` <span class="amt ${res.happy>0?'pos':'neg'}">${res.happy>0?'+':''}${res.happy} happiness</span>`:""}</div>
     <button class="primary" onclick="renderBudget()">Continue to budget →</button></div>`;
@@ -1066,8 +1120,9 @@ function resolveTight(onHand){
 // ============================ TEMPTATION ============================
 function goTemptation(){
   updateHUD();
-  if(Math.random()>BAL.flow.temptChance || S.cash<BAL.flow.temptMinCash) return goMarket();
-  const t=rand(TEMPTATIONS); S.tempt=t; const afford=S.cash>=t.cost;
+  const M=S.scenario.months[S.month];
+  if(!M.tempt || S.cash<BAL.flow.temptMinCash) return goMarket();
+  const t=M.tempt; S.tempt=t; const afford=S.cash>=t.cost;
   screen().innerHTML=`<div class="card"><h2>💳 Temptation!</h2>
     <div class="sub">A little dopamine now... or let that money compound for future you?</div>
     <div class="event">${t.t}<br><span class="amt neg">-${money(t.cost)}</span> · happiness <span class="amt pos">+${t.joy}</span></div>
@@ -1084,11 +1139,13 @@ function goMarket(){ resolveMarket(); renderMarket(); }
 // MUTATES state: applies this month's returns, records history, stashes a
 // read-only snapshot (S.lastMarket) for the renderer to display.
 function resolveMarket(){
-  const news = S.hotTip ? rand(NEWS.filter(n=>n.stock>=0.035)) : rand(NEWS);
+  const M=S.scenario.months[S.month];
+  // hot-tip item forces a strong-green month; otherwise the pre-rolled news
+  const news = S.hotTip ? NEWS.reduce((a,b)=>b.stock>a.stock?b:a) : M.news;
   if(S.hotTip) S.hotTip=false;
   const nz=S.insider?0.5:1;
   const before={}; ASSETS.forEach(a=>before[a.id]=S.holdings[a.id]);
-  ASSETS.forEach(a=>{ const ret=news.stock*a.mult+a.base+(Math.random()-0.5)*2*a.noise*nz; S.holdings[a.id]=Math.max(0,S.holdings[a.id]*(1+ret)); });
+  ASSETS.forEach((a,i)=>{ const ret=news.stock*a.mult+a.base+M.noise[i]*a.noise*nz; S.holdings[a.id]=Math.max(0,S.holdings[a.id]*(1+ret)); });
   S.savings*=BAL.market.savingsRate;
   const riskyBefore=before.bluechip+before.crypto+before.realestate;
   if(news.crash && riskyBefore>0){ unlock("diamond","Diamond Hands (held a crash)"); if(S.story)S.story.crashes++; }
@@ -1145,7 +1202,7 @@ function renderCheckpoint(cp,r){
     <h2>${cp.name}</h2>
     <div class="sub">Target: <b>${money(cp.target)}</b> net worth · You: <b style="color:${r.passed?'var(--green)':'var(--red)'}">${money(r.nw)}</b></div>
     <div class="event ${r.passed?'good':'bad'}">${r.passed
-      ? `✅ Checkpoint cleared! <b>+5 happiness</b>, a <b>bonus item</b>, and <b>+$1,500</b> to your final score.`
+      ? `✅ Checkpoint cleared! <b>+5 happiness</b>, a <b>bonus item</b>, and a <b>+$1,500</b> score bonus.`
       : `❌ Just short this time — no bonus, but the run's not over. Keep pushing!`}</div>
     <button class="primary" onclick="advanceMonth()">Continue →</button>
   </div>`;
@@ -1384,11 +1441,14 @@ function finalizeRun(){
   const score=base+goalBonus+checkBonus;
   const gr=GRADES.find(g=>score>g[0]); const grade=gr[1], emoji=gr[2], blurb=gr[3];
   const newly=checkUnlocks(grade,score); // mutates META
-  return { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows };
+  // record Daily Challenge best
+  let dailyBest=null;
+  if(S.daily){ dailyBest=Math.max(META.daily[S.daily]||0, score); META.daily[S.daily]=dailyBest; saveMeta(); }
+  return { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows, dailyBest };
 }
 // READ-ONLY render of the finalized run.
 function renderResults(R){
-  const { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows } = R;
+  const { nw, h, score, goalBonus, checkBonus, grade, emoji, blurb, newly, goalRows, dailyBest } = R;
   const tips=[];
   if(invested()<nw*0.25) tips.push("Most of your money sat in cash — invested money compounds and grows far faster.");
   if(h<45) tips.push("Your happiness was low. All-out saving isn't 'winning' if you're miserable — budget some fun.");
@@ -1406,8 +1466,12 @@ function renderResults(R){
   const unlockHtml=newly.length?`<div class="event good"><b>🔓 Unlocked:</b> ${newly.join(" · ")} — try them on your next run!</div>`:"";
   const bestHtml=score>=META.best?`<div class="pill" style="background:rgba(255,210,74,.15);color:var(--gold)">🔥 New best score!</div>`:`<div class="pill">Best: ${META.best.toLocaleString()}</div>`;
 
+  const seedHtml = S.daily
+    ? `<div class="pill" style="background:rgba(255,210,74,.15);color:var(--gold)">🗓️ Daily Challenge ${S.daily} · best ${dailyBest.toLocaleString()}</div>`
+    : `<div class="pill">🌱 Seed: ${seedCode(S.seed)}</div>`;
   screen().innerHTML=`<div class="card center">
     <div class="pill">${S.avatar} ${S.name} · ${S.sit.name} · ${PERKS[S.perk].icon} ${PERKS[S.perk].name}</div>
+    <div style="margin:6px 0">${seedHtml}</div>
     <div class="grade" style="color:var(--gold)">${emoji} ${grade}</div>
     <div class="big-num" id="score-anim">0</div>
     <div class="center sub" style="margin:-4px 0 8px">final score${(goalBonus+checkBonus)?` (incl. +${(goalBonus+checkBonus).toLocaleString()} bonus)`:""}</div>

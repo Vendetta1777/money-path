@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-05 — Session: Deterministic seed + Daily Challenge (M1)
+**Milestone:** M1 — Vertical Slice · **Issue:** #2 → closed
+
+**Shipped**
+- A **seeded PRNG** (mulberry32) + `buildScenario(seed)` that pre-generates the entire 24-month world (events, market news + noise, dilemmas, temptations, opportunities, item finds, goals) up front.
+- The core loop (`startMonth`/`goTemptation`/`resolveMarket`/`chooseDilemma`) now **reads from the pre-generated scenario** instead of rolling live — so the world is identical for a seed no matter how the player plays.
+- **Daily Challenge**: date-seeded run (fixed life + no perks for fairness), with best-score-per-day saved in `localStorage`. New start-screen card + results pill (shows seed / daily best).
+
+**Decisions**
+- *Pre-generate the world* rather than just swapping `Math.random` — only this makes "same seed → identical run" true under divergent choices (proven by test: two different strategies on one seed produce the same world).
+- Keep **cosmetic + interactive** randomness (confetti, minigame outcomes, day-trade luck) un-seeded — your *skill* varies, the *world* doesn't. This is also what makes "challenge a friend" fair.
+- Reworded the checkpoint reward ("…score bonus") to remove a "final score" string that was confusing automated tests — small testability win.
+
+**Coach's note 🎓 — Determinism is a superpower.**
+A *seed* is one number that recreates an entire game world. Pros lean on this hard: it powers **daily challenges** (everyone plays the same world), **"beat my run" sharing** (the viral loop), and — quietly the biggest win — **reproducible bug reports & tests** (a crash on seed `x7f3` can be replayed exactly). The key design choice was *what* to fix: we seed the **world**, not the **player**. Fix too much and replays feel scripted; fix too little and challenges aren't fair. Seeding the scenario but leaving skill free is the sweet spot.
+
+**Next**
+- **Issue #1 — shareable result card + "challenge a friend"**, which now plugs straight into the seed (share the seed → friend plays the same world). Highest-leverage remaining M1 brick.
+
+---
+
 ## 2026-06-05 — Session: Pre-Production (M0)
 **Milestone:** M0 — Foundation & Workflow → **graduated ✅**
 
